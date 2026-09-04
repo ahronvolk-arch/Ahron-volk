@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>רשימת קניות לבית</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      color: var(--text);
+    }
+
+    .add-form {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input, select, button {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 1rem;
+    }
+
+    input[type="text"] {
+      flex: 2;
+    }
+
+    input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .amount-input {
+      flex: 1;
+      max-width: 90px;
+    }
+
+    select {
+      background-color: #fff;
+    }
+
+    button.btn-primary {
+      background-color: var(--primary);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    button.btn-primary:active {
+      opacity: 0.85;
+    }
+
+    .category-group {
+      margin-bottom: 16px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .category-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+    }
+
+    .item-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 4px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .item-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .item-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .item-name {
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .item-amount {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .completed .item-name {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      color: #ef4444;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>🛒 רשימת קניות לבית</h1>
+  </header>
+
+  <form id="addItemForm" class="add-form">
+    <div class="form-row">
+      <input type="text" id="itemName" placeholder="שם הפריט (למשל: עגבניות)" required>
+      <input type="text" id="itemAmount" class="amount-input" placeholder="כמות (1 ק״ג)">
+    </div>
+    <div class="form-row">
+      <select id="itemCategory" style="flex: 1;">
+        <option value="ירקות ופירות">🥦 ירקות ופירות</option>
+        <option value="מאפים ולחמים">🥖 מאפים ולחמים</option>
+        <option value="מוצרי חלב וביצים">🧀 מוצרי חלב וביצים</option>
+        <option value="מזווה ויבשים">🌾 מזווה ויבשים</option>
+        <option value="בשר ודגים">🥩 בשר ודגים</option>
+        <option value="קפואים">❄️ קפואים</option>
+        <option value="ניקיון ובית">🧼 ניקיון ובית</option>
+        <option value="שונות">📦 שונות</option>
+      </select>
+      <button type="submit" class="btn-primary">הוסף לרשימה</button>
+    </div>
+  </form>
+
+  <div id="listContainer"></div>
+</div>
+
+<script>
+  const CATEGORY_ORDER = [
+    "ירקות ופירות",
+    "מאפים ולחמים",
+    "מוצרי חלב וביצים",
+    "מזווה ויבשים",
+    "בשר ודגים",
+    "קפואים",
+    "ניקיון ובית",
+    "שונות"
+  ];
+
+  let items = JSON.parse(localStorage.getItem('home_grocery_items')) || [];
+
+  const form = document.getElementById('addItemForm');
+  const itemNameInput = document.getElementById('itemName');
+  const itemAmountInput = document.getElementById('itemAmount');
+  const itemCategorySelect = document.getElementById('itemCategory');
+  const listContainer = document.getElementById('listContainer');
+
+  function saveItems() {
+    localStorage.setItem('home_grocery_items', JSON.stringify(items));
+    renderList();
+  }
+
+  function addItem(name, amount, category) {
+    items.push({
+      id: Date.now().toString(),
+      name: name.trim(),
+      amount: amount.trim() || '1',
+      category: category,
+      completed: false
+    });
+    saveItems();
+  }
+
+  function toggleComplete(id) {
+    items = items.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
+    saveItems();
+  }
+
+  function deleteItem(id) {
+    items = items.filter(item => item.id !== id);
+    saveItems();
+  }
+
+  function renderList() {
+    listContainer.innerHTML = '';
+
+    if (items.length === 0) {
+      listContainer.innerHTML = '<div class="empty-state">הרשימה ריקה. הגיע הזמן להוסיף מוצרים!</div>';
+      return;
+    }
+
+    const grouped = {};
+    items.forEach(item => {
+      if (!grouped[item.category]) grouped[item.category] = [];
+      grouped[item.category].push(item);
+    });
+
+    CATEGORY_ORDER.forEach(cat => {
+      if (grouped[cat] && grouped[cat].length > 0) {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'category-group';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'category-title';
+        titleEl.textContent = cat;
+        groupEl.appendChild(titleEl);
+
+        const listEl = document.createElement('ul');
+        listEl.className = 'item-list';
+
+        grouped[cat].sort((a, b) => a.completed - b.completed);
+
+        grouped[cat].forEach(item => {
+          const li = document.createElement('li');
+          li.className = `item-row ${item.completed ? 'completed' : ''}`;
+
+          li.innerHTML = `
+            <div class="item-info">
+              <input type="checkbox" class="item-checkbox" ${item.completed ? 'checked' : ''}>
+              <span class="item-name">${item.name}</span>
+              <span class="item-amount">${item.amount}</span>
+            </div>
+            <button class="btn-delete" title="מחק פריט">&times;</button>
+          `;
+
+          const checkbox = li.querySelector('.item-checkbox');
+          checkbox.addEventListener('change', () => toggleComplete(item.id));
+
+          const delBtn = li.querySelector('.btn-delete');
+          delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteItem(item.id);
+          });
+
+          listEl.appendChild(li);
+        });
+
+        groupEl.appendChild(listEl);
+        listContainer.appendChild(groupEl);
+      }
+    });
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = itemNameInput.value;
+    const amount = itemAmountInput.value;
+    const category = itemCategorySelect.value;
+
+    if (name) {
+      addItem(name, amount, category);
+      itemNameInput.value = '';
+      itemAmountInput.value = '';
+      itemNameInput.focus();
+    }
+  });
+
+  renderList();
+</script>
+
+</body>
+</html>
