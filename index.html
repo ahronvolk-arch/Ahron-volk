@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>רשימת קניות לבית</title>
+  
+  <!-- Firebase SDK הגרסה הגלובלית התואמת לכל נייד -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
   <style>
     :root {
       --primary: #2563eb;
@@ -40,12 +45,31 @@
 
     header {
       text-align: center;
-      margin-bottom: 14px;
+      margin-bottom: 6px;
     }
 
     h1 {
       font-size: 1.5rem;
       color: var(--text);
+    }
+
+    .sync-status {
+      font-size: 0.8rem;
+      color: var(--success);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      display: inline-block;
     }
 
     .tabs {
@@ -260,14 +284,13 @@
       font-size: 1.1rem;
       padding: 2px 5px;
       color: #94a3b8;
-      transition: color 0.2s;
     }
 
     .btn-icon.is-frequent {
       color: var(--gold);
     }
 
-    .btn-icon.btn-delete:hover, .btn-icon.btn-delete:active {
+    .btn-icon.btn-delete:hover {
       color: var(--danger);
     }
 
@@ -337,6 +360,11 @@
   <header>
     <h1>🛒 רשימת קניות לבית</h1>
   </header>
+  
+  <div class="sync-status">
+    <span class="sync-dot" id="syncDot"></span>
+    <span id="syncText">מתחבר לענן...</span>
+  </div>
 
   <div class="tabs">
     <button class="tab-btn active" id="tabList" onclick="switchTab('list')">רשימת קניות</button>
@@ -376,7 +404,7 @@
     <div id="listContainer"></div>
   </div>
 
-  <!-- לשונית ניהול מוצרים קבועים -->
+  <!-- לשונית מוצרים קבועים -->
   <div id="viewFrequent" style="display: none;">
     <form id="addFrequentForm" class="add-form">
       <div style="font-weight: 600; font-size: 0.9rem; color: var(--primary);">➕ הגדרת מוצר קבוע חדש</div>
@@ -404,6 +432,23 @@
 </div>
 
 <script>
+  // הגדרת Firebase בגרסה גלובלית
+  const firebaseConfig = {
+    apiKey: "AIzaSyD_gqEqymNTkmhKCb1NATJ2MlJVWoruOoM",
+    authDomain: "home-groceries-75b84.firebaseapp.com",
+    projectId: "home-groceries-75b84",
+    storageBucket: "home-groceries-75b84.firebasestorage.app",
+    messagingSenderId: "539436874101",
+    appId: "1:539436874101:web:ee05f241675d2864e27b3c",
+    measurementId: "G-1XPL6JMQ18"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const itemsCol = db.collection("items");
+  const frequentCol = db.collection("frequent");
+
   const CATEGORY_ORDER = [
     "ירקות ופירות",
     "מאפים ולחמים",
@@ -415,13 +460,8 @@
     "שונות"
   ];
 
-  let items = JSON.parse(localStorage.getItem('home_grocery_items')) || [];
-  let frequentItems = JSON.parse(localStorage.getItem('home_frequent_items')) || [
-    { id: 'f1', name: "חלב", category: "מוצרי חלב וביצים", amount: "2" },
-    { id: 'f2', name: "ביצים", category: "מוצרי חלב וביצים", amount: "1 מגש" },
-    { id: 'f3', name: "עגבניות", category: "ירקות ופירות", amount: "1 ק״ג" },
-    { id: 'f4', name: "מלפפונים", category: "ירקות ופירות", amount: "1 ק״ג" }
-  ];
+  let items = [];
+  let frequentItems = [];
   let shopMode = false;
 
   const form = document.getElementById('addItemForm');
@@ -433,67 +473,81 @@
   const actionsBar = document.getElementById('actionsBar');
   const itemsCount = document.getElementById('itemsCount');
   const btnShopMode = document.getElementById('btnShopMode');
+  const syncText = document.getElementById('syncText');
 
-  function saveItems() {
-    localStorage.setItem('home_grocery_items', JSON.stringify(items));
-    renderList();
+  // סנכרון חי של פריטי הרשימה
+  itemsCol.onSnapshot(
+    (snapshot) => {
+      items = [];
+      snapshot.forEach(doc => {
+        items.push({ id: doc.id, ...doc.data() });
+      });
+      syncText.textContent = "מחובר ומסונכרן בזמן אמת";
+      renderList();
+    },
+    (error) => {
+      console.error(error);
+      syncText.textContent = "שגיאת חיבור לענן";
+      syncText.style.color = "red";
+    }
+  );
+
+  // סנכרון חי של מוצרים קבועים
+  frequentCol.onSnapshot(
+    (snapshot) => {
+      frequentItems = [];
+      snapshot.forEach(doc => {
+        frequentItems.push({ id: doc.id, ...doc.data() });
+      });
+      renderFrequent();
+      renderList();
+    }
+  );
+
+  function addItem(name, amount, category) {
+    itemsCol.add({
+      name: name.trim(),
+      amount: amount.trim() || '1',
+      category: category,
+      completed: false,
+      createdAt: Date.now()
+    }).catch(err => alert("שגיאה בשמירה: " + err.message));
   }
 
-  function saveFrequent() {
-    localStorage.setItem('home_frequent_items', JSON.stringify(frequentItems));
-    renderFrequent();
-    renderList();
+  function toggleComplete(id, currentStatus) {
+    itemsCol.doc(id).update({ completed: !currentStatus });
   }
 
-  function isItemFrequent(name) {
-    return frequentItems.some(f => f.name.trim().toLowerCase() === name.trim().toLowerCase());
+  function deleteItem(id) {
+    itemsCol.doc(id).delete();
+  }
+
+  function deleteFrequent(id) {
+    frequentCol.doc(id).delete();
   }
 
   function toggleFrequentFromList(item) {
-    const existingIndex = frequentItems.findIndex(f => f.name.trim().toLowerCase() === item.name.trim().toLowerCase());
-    if (existingIndex >= 0) {
-      frequentItems.splice(existingIndex, 1);
+    const existing = frequentItems.find(f => f.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+    if (existing) {
+      frequentCol.doc(existing.id).delete();
     } else {
-      frequentItems.push({
-        id: Date.now().toString(),
+      frequentCol.add({
         name: item.name,
         amount: item.amount,
         category: item.category
       });
     }
-    saveFrequent();
-  }
-
-  function addItem(name, amount, category) {
-    items.push({
-      id: Date.now().toString() + Math.random().toString().slice(2, 5),
-      name: name.trim(),
-      amount: amount.trim() || '1',
-      category: category,
-      completed: false
-    });
-    saveItems();
-  }
-
-  function toggleComplete(id) {
-    items = items.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
-    saveItems();
-  }
-
-  function deleteItem(id) {
-    items = items.filter(item => item.id !== id);
-    saveItems();
-  }
-
-  function deleteFrequent(id) {
-    frequentItems = frequentItems.filter(f => f.id !== id);
-    saveFrequent();
   }
 
   function clearCompleted() {
-    if (confirm('למחוק את כל הפריטים שכבר נאספו לעגלה?')) {
-      items = items.filter(item => !item.completed);
-      saveItems();
+    const completedItems = items.filter(i => i.completed);
+    if (completedItems.length === 0) return;
+    if (confirm('למחוק את כל הפריטים שנאספו לעגלה?')) {
+      const batch = db.batch();
+      completedItems.forEach(i => {
+        batch.delete(itemsCol.doc(i.id));
+      });
+      batch.commit();
     }
   }
 
@@ -522,6 +576,10 @@
     alert(`"${frequentItem.name}" נוסף לרשימה!`);
   }
 
+  function isItemFrequent(name) {
+    return frequentItems.some(f => f.name.trim().toLowerCase() === name.trim().toLowerCase());
+  }
+
   function renderFrequent() {
     const container = document.getElementById('frequentContainer');
     container.innerHTML = '';
@@ -534,18 +592,19 @@
     frequentItems.forEach(item => {
       const card = document.createElement('div');
       card.className = 'frequent-card';
+      
+      const itemDataStr = JSON.stringify(item).replace(/"/g, '&quot;');
+      
       card.innerHTML = `
         <div class="frequent-info">
           <span class="frequent-title">${item.name}</span>
           <span class="frequent-cat">${item.category} (${item.amount})</span>
         </div>
         <div class="frequent-btns">
-          <button class="btn-add-quick" title="הוסף לקניות">+</button>
-          <button class="btn-icon btn-delete" title="מחק מקבועים">&times;</button>
+          <button class="btn-add-quick" onclick="addFromFrequent(${itemDataStr})" title="הוסף לקניות">+</button>
+          <button class="btn-icon btn-delete" onclick="deleteFrequent('${item.id}')" title="מחק מקבועים">&times;</button>
         </div>
       `;
-      card.querySelector('.btn-add-quick').addEventListener('click', () => addFromFrequent(item));
-      card.querySelector('.btn-delete').addEventListener('click', () => deleteFrequent(item.id));
       container.appendChild(card);
     });
   }
@@ -594,38 +653,19 @@
           const li = document.createElement('li');
           li.className = `item-row ${item.completed ? 'completed' : ''}`;
           const isFreq = isItemFrequent(item.name);
+          const itemDataStr = JSON.stringify(item).replace(/"/g, '&quot;');
 
           li.innerHTML = `
-            <div class="item-info">
-              <input type="checkbox" class="item-checkbox" ${item.completed ? 'checked' : ''}>
+            <div class="item-info" onclick="toggleComplete('${item.id}', ${item.completed})">
+              <input type="checkbox" class="item-checkbox" ${item.completed ? 'checked' : ''} onclick="event.stopPropagation(); toggleComplete('${item.id}', ${item.completed})">
               <span class="item-name">${item.name}</span>
               <span class="item-amount">${item.amount}</span>
             </div>
             <div class="item-actions">
-              <button class="btn-icon btn-star ${isFreq ? 'is-frequent' : ''}" title="${isFreq ? 'הסר מקבועים' : 'שמור כקבוע'}">★</button>
-              <button class="btn-icon btn-delete" title="מחק פריט">&times;</button>
+              <button class="btn-icon btn-star ${isFreq ? 'is-frequent' : ''}" onclick="toggleFrequentFromList(${itemDataStr})" title="${isFreq ? 'הסר מקבועים' : 'שמור כקבוע'}">★</button>
+              <button class="btn-icon btn-delete" onclick="deleteItem('${item.id}')" title="מחק פריט">&times;</button>
             </div>
           `;
-
-          const infoDiv = li.querySelector('.item-info');
-          infoDiv.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'INPUT') toggleComplete(item.id);
-          });
-
-          const checkbox = li.querySelector('.item-checkbox');
-          checkbox.addEventListener('change', () => toggleComplete(item.id));
-
-          const starBtn = li.querySelector('.btn-star');
-          starBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleFrequentFromList(item);
-          });
-
-          const delBtn = li.querySelector('.btn-delete');
-          delBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteItem(item.id);
-          });
 
           listEl.appendChild(li);
         });
@@ -661,19 +701,11 @@
         alert('המוצר כבר קיים ברשימת הקבועים!');
         return;
       }
-      frequentItems.push({
-        id: Date.now().toString(),
-        name,
-        amount,
-        category
-      });
-      saveFrequent();
+      frequentCol.add({ name, amount, category });
       document.getElementById('freqName').value = '';
       document.getElementById('freqAmount').value = '';
     }
   });
-
-  renderList();
 </script>
 
 </body>
