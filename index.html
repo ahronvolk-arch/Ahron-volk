@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>רשימת קניות לבית</title>
   
-  <!-- Firebase SDK הגרסה הגלובלית התואמת לכל נייד -->
+  <!-- Firebase SDK הגרסה הגלובלית התואמת -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -174,6 +174,7 @@
     .action-buttons {
       display: flex;
       gap: 6px;
+      flex-wrap: wrap;
     }
 
     .btn-action {
@@ -352,6 +353,80 @@
       margin-top: 30px;
       font-size: 0.95rem;
     }
+
+    /* === סגנונות מיוחדים להדפסה בלבד === */
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+        margin: 0;
+        color: #000;
+      }
+
+      .container {
+        max-width: 100%;
+        width: 100%;
+      }
+
+      header h1 {
+        font-size: 1.8rem;
+        margin-bottom: 4px;
+        text-align: right;
+      }
+
+      /* הסתרת אלמנטים שלא רלוונטיים להדפסה */
+      .sync-status,
+      .tabs,
+      .add-form,
+      .actions-bar,
+      .item-actions,
+      #viewFrequent {
+        display: none !important;
+      }
+
+      #viewList {
+        display: block !important;
+      }
+
+      .category-group {
+        box-shadow: none;
+        border: 1px solid #ccc;
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        page-break-inside: avoid;
+      }
+
+      .category-title {
+        color: #000;
+        border-bottom: 2px solid #000;
+        font-size: 1.1rem;
+      }
+
+      .category-badge {
+        display: none;
+      }
+
+      .item-row {
+        background: none;
+        padding: 4px 0;
+        border-bottom: 1px dashed #eee;
+      }
+
+      .item-checkbox {
+        border: 1px solid #333;
+        appearance: none;
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+      }
+
+      .item-amount {
+        background: none;
+        border: 1px solid #ddd;
+        color: #333;
+      }
+    }
   </style>
 </head>
 <body>
@@ -396,6 +471,7 @@
     <div class="actions-bar" id="actionsBar" style="display: none;">
       <span class="items-count" id="itemsCount"></span>
       <div class="action-buttons">
+        <button class="btn-action" onclick="printList()">🖨️ הדפס רשימה</button>
         <button class="btn-action" id="btnShopMode" onclick="toggleShopMode()">🛒 מצב סופר: כבוי</button>
         <button class="btn-action" onclick="clearCompleted()">נקה שנאספו</button>
       </div>
@@ -432,7 +508,6 @@
 </div>
 
 <script>
-  // הגדרת Firebase בגרסה גלובלית
   const firebaseConfig = {
     apiKey: "AIzaSyD_gqEqymNTkmhKCb1NATJ2MlJVWoruOoM",
     authDomain: "home-groceries-75b84.firebaseapp.com",
@@ -475,7 +550,6 @@
   const btnShopMode = document.getElementById('btnShopMode');
   const syncText = document.getElementById('syncText');
 
-  // סנכרון חי של פריטי הרשימה
   itemsCol.onSnapshot(
     (snapshot) => {
       items = [];
@@ -492,7 +566,6 @@
     }
   );
 
-  // סנכרון חי של מוצרים קבועים
   frequentCol.onSnapshot(
     (snapshot) => {
       frequentItems = [];
@@ -558,6 +631,12 @@
     renderList();
   }
 
+  function printList() {
+    // מעבר אוטומטי לרשימת הקניות אם נמצאים בלשונית אחרת
+    switchTab('list');
+    window.print();
+  }
+
   function switchTab(tab) {
     document.getElementById('viewList').style.display = tab === 'list' ? 'block' : 'none';
     document.getElementById('viewFrequent').style.display = tab === 'frequent' ? 'block' : 'none';
@@ -592,7 +671,6 @@
     frequentItems.forEach(item => {
       const card = document.createElement('div');
       card.className = 'frequent-card';
-      
       const itemDataStr = JSON.stringify(item).replace(/"/g, '&quot;');
       
       card.innerHTML = `
