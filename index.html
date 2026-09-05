@@ -2,113 +2,175 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>רשימת קניות לבית</title>
   
-  <!-- Firebase SDK הגרסה הגלובלית התואמת -->
+  <!-- גופן מודרני מבית גוגל -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <style>
     :root {
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
       --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --text: #1e293b;
-      --text-muted: #64748b;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-secondary: #64748b;
+      --text-light: #94a3b8;
       --border: #e2e8f0;
-      --success: #16a34a;
+      --success: #10b981;
       --danger: #ef4444;
-      --gold: #eab308;
+      --gold: #f59e0b;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
     }
 
     * {
       box-sizing: border-box;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Heebo', -apple-system, BlinkMacSystemFont, sans-serif;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
-      background-color: var(--bg);
+      background: #f1f5f9;
       color: var(--text);
-      padding: 14px;
+      padding: 16px 12px 30px;
       display: flex;
       justify-content: center;
+      min-height: 100vh;
     }
 
     .container {
       width: 100%;
-      max-width: 500px;
+      max-width: 480px;
     }
 
+    /* === Header === */
     header {
-      text-align: center;
-      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-icon {
+      font-size: 1.6rem;
+      line-height: 1;
     }
 
     h1 {
-      font-size: 1.5rem;
-      color: var(--text);
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.3px;
     }
 
+    .header-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-print-top {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+    }
+
+    .btn-print-top:active {
+      transform: scale(0.96);
+      background: #f8fafc;
+    }
+
+    /* === Sync Status === */
     .sync-status {
-      font-size: 0.8rem;
-      color: var(--success);
+      font-size: 0.75rem;
+      color: #059669;
       display: flex;
       align-items: center;
       gap: 6px;
-      justify-content: center;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       font-weight: 500;
+      padding: 0 6px;
     }
 
     .sync-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--success);
+      width: 7px;
+      height: 7px;
+      background: #10b981;
       border-radius: 50%;
       display: inline-block;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
     }
 
+    /* === Tabs === */
     .tabs {
       display: flex;
       background: #e2e8f0;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 3px;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       gap: 4px;
     }
 
     .tab-btn {
       flex: 1;
-      padding: 8px;
+      padding: 9px;
       border: none;
       background: none;
       font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      border-radius: 8px;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      border-radius: 10px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.25s ease;
     }
 
     .tab-btn.active {
-      background: var(--card-bg);
-      color: var(--primary);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      background: var(--surface);
+      color: var(--primary-dark);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
     }
 
+    /* === Forms === */
     .add-form {
-      background: var(--card-bg);
-      padding: 14px;
-      border-radius: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-      margin-bottom: 14px;
+      background: var(--surface);
+      padding: 16px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      margin-bottom: 16px;
       display: flex;
       flex-direction: column;
       gap: 10px;
+      border: 1px solid rgba(226, 232, 240, 0.8);
     }
 
     .form-row {
@@ -117,11 +179,21 @@
       width: 100%;
     }
 
-    input, select, button {
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      font-size: 0.95rem;
+    input, select {
+      padding: 11px 13px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      font-size: 0.92rem;
+      background-color: #f8fafc;
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
     }
 
     .input-name {
@@ -132,93 +204,108 @@
     .input-amount {
       flex: 1.2;
       min-width: 0;
-    }
-
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--primary);
+      text-align: center;
     }
 
     select {
-      background-color: #fff;
       flex: 2;
       min-width: 0;
+      cursor: pointer;
     }
 
     button.btn-primary {
-      background-color: var(--primary);
+      background: var(--primary-gradient);
       color: #fff;
       border: none;
+      padding: 11px 14px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 0.92rem;
       flex: 1.2;
       white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+      transition: all 0.2s;
     }
 
+    button.btn-primary:active {
+      transform: scale(0.97);
+      box-shadow: 0 1px 2px rgba(37, 99, 235, 0.15);
+    }
+
+    /* === Actions Bar === */
     .actions-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      padding: 0 4px;
-      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding: 0 6px;
       gap: 8px;
     }
 
     .items-count {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      font-weight: 500;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      font-weight: 600;
     }
 
     .action-buttons {
       display: flex;
       gap: 6px;
-      flex-wrap: wrap;
     }
 
     .btn-action {
-      background: #fff;
+      background: var(--surface);
       border: 1px solid var(--border);
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      padding: 5px 10px;
-      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      padding: 5px 11px;
+      border-radius: 8px;
+      font-weight: 600;
       cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+    }
+
+    .btn-action:active {
+      transform: scale(0.96);
     }
 
     .btn-action.active-mode {
-      background: #dbeafe;
-      color: var(--primary);
-      border-color: var(--primary);
-      font-weight: 600;
+      background: #eff6ff;
+      color: var(--primary-dark);
+      border-color: #bfdbfe;
     }
 
+    /* === Categories & Items === */
     .category-group {
-      margin-bottom: 12px;
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      margin-bottom: 14px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(226, 232, 240, 0.7);
     }
 
     .category-title {
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 4px;
+      color: #334155;
+      margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #f1f5f9;
     }
 
     .category-badge {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       background: #eff6ff;
-      color: var(--primary);
-      padding: 2px 6px;
+      color: var(--primary-dark);
+      padding: 2px 8px;
       border-radius: 12px;
+      font-weight: 700;
     }
 
     .item-list {
@@ -232,59 +319,103 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 6px 4px;
-      border-radius: 6px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
       background: #f8fafc;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .item-row:hover {
+      background: #f1f5f9;
     }
 
     .item-row.completed {
-      opacity: 0.55;
+      opacity: 0.45;
+      background: #f8fafc;
     }
 
     .item-info {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex: 1;
       cursor: pointer;
+      min-width: 0;
     }
 
+    /* תיבת סימון מעוצבת ונעימה */
     .item-checkbox {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--success);
+      appearance: none;
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #cbd5e1;
+      border-radius: 6px;
+      outline: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      background: #fff;
+    }
+
+    .item-checkbox:checked {
+      background: #10b981;
+      border-color: #10b981;
+    }
+
+    .item-checkbox:checked::after {
+      content: '✓';
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 800;
     }
 
     .item-name {
       font-size: 0.95rem;
       font-weight: 500;
+      color: var(--text);
+      word-break: break-word;
     }
 
     .completed .item-name {
       text-decoration: line-through;
+      color: var(--text-secondary);
     }
 
     .item-amount {
-      font-size: 0.8rem;
-      color: var(--text-muted);
+      font-size: 0.75rem;
+      color: #475569;
       background: #e2e8f0;
-      padding: 1px 6px;
-      border-radius: 4px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 600;
+      flex-shrink: 0;
     }
 
     .item-actions {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 2px;
     }
 
     .btn-icon {
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 1.1rem;
-      padding: 2px 5px;
-      color: #94a3b8;
+      font-size: 1.15rem;
+      padding: 4px 6px;
+      color: #cbd5e1;
+      border-radius: 6px;
+      transition: all 0.2s;
+      line-height: 1;
+    }
+
+    .btn-icon:hover {
+      color: var(--text-secondary);
     }
 
     .btn-icon.is-frequent {
@@ -293,22 +424,31 @@
 
     .btn-icon.btn-delete:hover {
       color: var(--danger);
+      background: #fee2e2;
     }
 
+    /* === Frequent Items Grid === */
     .frequent-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+      gap: 10px;
     }
 
     .frequent-card {
-      background: var(--card-bg);
-      padding: 10px;
-      border-radius: 10px;
+      background: var(--surface);
+      padding: 12px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      transition: all 0.2s;
+    }
+
+    .frequent-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: var(--shadow-md);
     }
 
     .frequent-info {
@@ -321,14 +461,16 @@
     .frequent-title {
       font-size: 0.9rem;
       font-weight: 600;
+      color: var(--text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .frequent-cat {
-      font-size: 0.75rem;
-      color: var(--text-muted);
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
     }
 
     .frequent-btns {
@@ -339,42 +481,54 @@
 
     .btn-add-quick {
       background: #eff6ff;
-      color: var(--primary);
+      color: var(--primary-dark);
       border: 1px solid #bfdbfe;
-      border-radius: 6px;
-      font-weight: bold;
-      padding: 4px 8px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-add-quick:active {
+      transform: scale(0.92);
+      background: var(--primary);
+      color: #fff;
     }
 
     .empty-state {
       text-align: center;
-      color: var(--text-muted);
-      margin-top: 30px;
+      color: var(--text-secondary);
+      margin: 40px 0;
       font-size: 0.95rem;
+      line-height: 1.6;
     }
 
-    /* === סגנונות מיוחדים להדפסה בלבד === */
+    /* === סגנון מותאם להדפסה בלבד === */
     @media print {
       body {
-        background: #fff;
-        padding: 0;
-        margin: 0;
-        color: #000;
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        color: #000000 !important;
       }
 
       .container {
-        max-width: 100%;
-        width: 100%;
+        max-width: 100% !important;
+        width: 100% !important;
       }
 
       header h1 {
-        font-size: 1.8rem;
-        margin-bottom: 4px;
-        text-align: right;
+        font-size: 1.6rem !important;
+        text-align: right !important;
       }
 
-      /* הסתרת אלמנטים שלא רלוונטיים להדפסה */
+      .header-actions,
       .sync-status,
       .tabs,
       .add-form,
@@ -389,42 +543,41 @@
       }
 
       .category-group {
-        box-shadow: none;
-        border: 1px solid #ccc;
-        margin-bottom: 12px;
-        padding: 8px 12px;
-        page-break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        margin-bottom: 12px !important;
+        padding: 8px 12px !important;
+        page-break-inside: avoid !important;
       }
 
       .category-title {
-        color: #000;
-        border-bottom: 2px solid #000;
-        font-size: 1.1rem;
+        color: #000 !important;
+        border-bottom: 2px solid #000 !important;
+        font-size: 1.1rem !important;
       }
 
       .category-badge {
-        display: none;
+        display: none !important;
       }
 
       .item-row {
-        background: none;
-        padding: 4px 0;
-        border-bottom: 1px dashed #eee;
+        background: none !important;
+        padding: 4px 0 !important;
+        border-bottom: 1px dashed #e2e8f0 !important;
       }
 
       .item-checkbox {
-        border: 1px solid #333;
-        appearance: none;
-        -webkit-appearance: none;
-        width: 14px;
-        height: 14px;
-        border-radius: 2px;
+        border: 1px solid #333 !important;
+        background: none !important;
+        width: 14px !important;
+        height: 14px !important;
+        border-radius: 2px !important;
       }
 
       .item-amount {
-        background: none;
-        border: 1px solid #ddd;
-        color: #333;
+        background: none !important;
+        border: 1px solid #ccc !important;
+        color: #000 !important;
       }
     }
   </style>
@@ -433,7 +586,13 @@
 
 <div class="container">
   <header>
-    <h1>🛒 רשימת קניות לבית</h1>
+    <div class="title-group">
+      <span class="app-icon">🛒</span>
+      <h1>רשימת קניות לבית</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn-print-top" onclick="triggerPrint()">🖨️ הדפס</button>
+    </div>
   </header>
   
   <div class="sync-status">
@@ -451,7 +610,7 @@
     <form id="addItemForm" class="add-form">
       <div class="form-row">
         <input type="text" id="itemName" class="input-name" placeholder="שם הפריט (למשל: חלב)" required>
-        <input type="text" id="itemAmount" class="input-amount" placeholder="כמות (1)">
+        <input type="text" id="itemAmount" class="input-amount" placeholder="כמות">
       </div>
       <div class="form-row">
         <select id="itemCategory">
@@ -471,7 +630,6 @@
     <div class="actions-bar" id="actionsBar" style="display: none;">
       <span class="items-count" id="itemsCount"></span>
       <div class="action-buttons">
-        <button class="btn-action" onclick="printList()">🖨️ הדפס רשימה</button>
         <button class="btn-action" id="btnShopMode" onclick="toggleShopMode()">🛒 מצב סופר: כבוי</button>
         <button class="btn-action" onclick="clearCompleted()">נקה שנאספו</button>
       </div>
@@ -483,7 +641,7 @@
   <!-- לשונית מוצרים קבועים -->
   <div id="viewFrequent" style="display: none;">
     <form id="addFrequentForm" class="add-form">
-      <div style="font-weight: 600; font-size: 0.9rem; color: var(--primary);">➕ הגדרת מוצר קבוע חדש</div>
+      <div style="font-weight: 700; font-size: 0.9rem; color: var(--primary-dark);">➕ הגדרת מוצר קבוע חדש</div>
       <div class="form-row">
         <input type="text" id="freqName" class="input-name" placeholder="שם המוצר הקבוע" required>
         <input type="text" id="freqAmount" class="input-amount" placeholder="כמות">
@@ -631,10 +789,11 @@
     renderList();
   }
 
-  function printList() {
-    // מעבר אוטומטי לרשימת הקניות אם נמצאים בלשונית אחרת
+  function triggerPrint() {
     switchTab('list');
-    window.print();
+    setTimeout(() => {
+      window.print();
+    }, 150);
   }
 
   function switchTab(tab) {
@@ -652,7 +811,6 @@
       return;
     }
     addItem(frequentItem.name, frequentItem.amount, frequentItem.category);
-    alert(`"${frequentItem.name}" נוסף לרשימה!`);
   }
 
   function isItemFrequent(name) {
@@ -664,7 +822,7 @@
     container.innerHTML = '';
 
     if (frequentItems.length === 0) {
-      container.innerHTML = '<div class="empty-state" style="grid-column: span 2;">אין עדיין מוצרים קבועים. הוסיפו כאן למעלה!</div>';
+      container.innerHTML = '<div class="empty-state" style="grid-column: span 2;">אין עדיין מוצרים קבועים.<br>הוסיפו מוצרים קבועים למעלה בלחיצה קלה!</div>';
       return;
     }
 
@@ -693,7 +851,7 @@
 
     if (items.length === 0) {
       actionsBar.style.display = 'none';
-      listContainer.innerHTML = '<div class="empty-state">הרשימה ריקה 🎉<br>הוסיפו מוצרים או בחרו מ-⭐ מוצרים קבועים.</div>';
+      listContainer.innerHTML = '<div class="empty-state">הרשימה ריקה 🎉<br>הוסיפו מוצרים למעלה או בחרו מ-⭐ המוצרים הקבועים.</div>';
       return;
     }
 
@@ -718,7 +876,7 @@
         titleEl.className = 'category-title';
         titleEl.innerHTML = `
           <span>${cat}</span>
-          <span class="category-badge">${uncompletedInCat} נשארו</span>
+          <span class="category-badge">${uncompletedInCat}</span>
         `;
         groupEl.appendChild(titleEl);
 
