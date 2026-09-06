@@ -5,14 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>קניות משפחת וולק</title>
   
-  <!-- הגדרות אייקון לאפליקציה במסך הבית ובדפדפן -->
-  <link rel="icon" type="image/png" href="icon.png">
+  <!-- הגדרות אייקון ישירות עבור אנדרואיד, אייפון ומסך הבית -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="קניות וולק">
   <meta name="theme-color" content="#2563eb">
+
+  <!-- Manifest מובנה לזיהוי מיידי של האייקון כאפליקציה ללא צורך בקובץ נוסף -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"קניות משפחת וולק","short_name":"קניות וולק","start_url":"./","display":"standalone","background_color":"#f1f5f9","theme_color":"#2563eb","icons":[{"src":"icon.png","sizes":"192x192 512x512","type":"image/png"}]}'>
 
   <!-- גופן מודרני מבית גוגל -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -452,6 +456,7 @@
     .frequent-title {
       font-size: 0.9rem;
       font-weight: 600;
+      color: var(--text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
