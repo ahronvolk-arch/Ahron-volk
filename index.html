@@ -206,9 +206,44 @@
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
     }
 
-    .input-name {
+    .input-name-wrap {
+      position: relative;
       flex: 3;
-      min-width: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-name-wrap input {
+      width: 100%;
+      padding-left: 38px;
+    }
+
+    .btn-mic {
+      position: absolute;
+      left: 6px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.15rem;
+      padding: 4px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      transition: all 0.2s;
+    }
+
+    .btn-mic.listening {
+      color: #ef4444;
+      animation: pulseMic 1.2s infinite;
+      background: #fee2e2;
+    }
+
+    @keyframes pulseMic {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
     }
 
     .input-amount {
@@ -610,7 +645,10 @@
   <div id="viewList">
     <form id="addItemForm" class="add-form">
       <div class="form-row">
-        <input type="text" id="itemName" class="input-name" list="smartSuggestions" placeholder="שם הפריט (למשל: עגבניות)" required autocomplete="off">
+        <div class="input-name-wrap">
+          <input type="text" id="itemName" list="smartSuggestions" placeholder="שם הפריט או הקלטה..." required autocomplete="off">
+          <button type="button" id="btnMic" class="btn-mic" onclick="toggleSpeech()" title="הקלטה קולית">🎙️</button>
+        </div>
         <datalist id="smartSuggestions"></datalist>
         <input type="text" id="itemAmount" class="input-amount" placeholder="כמות">
       </div>
@@ -698,7 +736,6 @@
     "שונות"
   ];
 
-  // מאגר חכם להשלמה אוטומטית ושיוך קטגוריה מיידי
   const AUTOCOMPLETE_CATALOG = {
     "עגבניות": "ירקות ופירות",
     "מלפפונים": "ירקות ופירות",
@@ -773,8 +810,9 @@
   const itemsCount = document.getElementById('itemsCount');
   const btnShopMode = document.getElementById('btnShopMode');
   const syncText = document.getElementById('syncText');
+  const btnMic = document.getElementById('btnMic');
 
-  // טעינת רשימת ההצעות להשלמה אוטומטית
+  // השלמה אוטומטית
   function populateSuggestions() {
     datalist.innerHTML = '';
     Object.keys(AUTOCOMPLETE_CATALOG).forEach(product => {
@@ -785,13 +823,72 @@
   }
   populateSuggestions();
 
-  // בחירה מתוך השלמה אוטומטית - התאמת קטגוריה מיידית
   itemNameInput.addEventListener('input', (e) => {
     const val = e.target.value.trim();
     if (AUTOCOMPLETE_CATALOG[val]) {
       itemCategorySelect.value = AUTOCOMPLETE_CATALOG[val];
     }
   });
+
+  // מנגנון זיהוי קולי (Web Speech API)
+  let recognition = null;
+  let isListening = false;
+
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'he-IL';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      isListening = true;
+      btnMic.classList.add('listening');
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript.trim();
+      itemNameInput.value = transcript;
+      
+      // בדיקה אם יש זיהוי של קטגוריה
+      if (AUTOCOMPLETE_CATALOG[transcript]) {
+        itemCategorySelect.value = AUTOCOMPLETE_CATALOG[transcript];
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('שגיאת הקלטה קולית:', event.error);
+      stopSpeech();
+    };
+
+    recognition.onend = () => {
+      stopSpeech();
+    };
+  } else {
+    btnMic.style.display = 'none';
+  }
+
+  function toggleSpeech() {
+    if (!recognition) {
+      alert("הדפדפן אינו תומך בהקלטה קולית.");
+      return;
+    }
+    if (isListening) {
+      recognition.stop();
+      stopSpeech();
+    } else {
+      try {
+        recognition.start();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+
+  function stopSpeech() {
+    isListening = false;
+    btnMic.classList.remove('listening');
+  }
 
   itemsCol.onSnapshot(
     (snapshot) => {
@@ -875,7 +972,6 @@
     renderList();
   }
 
-  // שיתוף מהיר לוואטסאפ
   function shareWhatsApp() {
     if (items.length === 0) {
       alert("הרשימה ריקה, אין מה לשתף!");
