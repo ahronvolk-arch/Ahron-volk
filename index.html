@@ -5,24 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>קניות משפחת וולק</title>
   
-  <!-- אייקון ישיר לדפדפן ללא תלות בשרתי WebAPK חיצוניים -->
   <link rel="icon" type="image/png" sizes="192x192" href="icon2.png?v=99">
   <link rel="icon" type="image/png" sizes="512x512" href="icon2.png?v=99">
   <link rel="apple-touch-icon" href="icon2.png?v=99">
-  <link rel="apple-touch-icon-precomposed" href="icon2.png?v=99">
-  <link rel="shortcut icon" href="icon2.png?v=99">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="קניות וולק">
   <meta name="theme-color" content="#2563eb">
 
-  <!-- גופן מודרני מבית גוגל -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Firebase SDK Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -37,6 +32,7 @@
       --text-secondary: #64748b;
       --border: #e2e8f0;
       --success: #10b981;
+      --whatsapp: #25d366;
       --danger: #ef4444;
       --gold: #f59e0b;
       --radius: 16px;
@@ -101,25 +97,30 @@
       gap: 6px;
     }
 
-    .btn-print-top {
+    .btn-header {
       background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 6px 12px;
+      padding: 6px 11px;
       border-radius: 20px;
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       box-shadow: var(--shadow-sm);
       transition: all 0.2s;
     }
 
-    .btn-print-top:active {
+    .btn-whatsapp {
+      background: #ecfdf5;
+      color: #065f46;
+      border-color: #a7f3d0;
+    }
+
+    .btn-header:active {
       transform: scale(0.96);
-      background: #f8fafc;
     }
 
     .sync-status {
@@ -216,8 +217,14 @@
       text-align: center;
     }
 
+    .input-note {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.85rem;
+    }
+
     select {
-      flex: 2;
+      flex: 1.8;
       min-width: 0;
       cursor: pointer;
     }
@@ -226,12 +233,11 @@
       background: var(--primary-gradient);
       color: #fff;
       border: none;
-      padding: 11px 14px;
+      padding: 11px 16px;
       border-radius: var(--radius-sm);
       cursor: pointer;
       font-weight: 700;
       font-size: 0.92rem;
-      flex: 1.2;
       white-space: nowrap;
       box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
       transition: all 0.2s;
@@ -373,6 +379,12 @@
       font-weight: 800;
     }
 
+    .item-text-group {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
     .item-name {
       font-size: 0.95rem;
       font-weight: 500;
@@ -380,7 +392,15 @@
       word-break: break-word;
     }
 
-    .completed .item-name {
+    .item-note {
+      font-size: 0.73rem;
+      color: #d97706;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    .completed .item-name,
+    .completed .item-note {
       text-decoration: line-through;
       color: var(--text-secondary);
     }
@@ -393,6 +413,7 @@
       border-radius: 6px;
       font-weight: 600;
       flex-shrink: 0;
+      margin-left: 6px;
     }
 
     .item-actions {
@@ -570,7 +591,8 @@
       <h1>קניות משפחת וולק</h1>
     </div>
     <div class="header-actions">
-      <button class="btn-print-top" onclick="triggerPrint()">🖨️ הדפס</button>
+      <button class="btn-header btn-whatsapp" onclick="shareWhatsApp()" title="שתף בוואטסאפ">💬 וואטסאפ</button>
+      <button class="btn-header" onclick="triggerPrint()">🖨️ הדפס</button>
     </div>
   </header>
   
@@ -588,8 +610,12 @@
   <div id="viewList">
     <form id="addItemForm" class="add-form">
       <div class="form-row">
-        <input type="text" id="itemName" class="input-name" placeholder="שם הפריט (למשל: חלב)" required>
+        <input type="text" id="itemName" class="input-name" list="smartSuggestions" placeholder="שם הפריט (למשל: עגבניות)" required autocomplete="off">
+        <datalist id="smartSuggestions"></datalist>
         <input type="text" id="itemAmount" class="input-amount" placeholder="כמות">
+      </div>
+      <div class="form-row">
+        <input type="text" id="itemNote" class="input-note" placeholder="הערה (אופציונלי, למשל: רק במבצע)">
       </div>
       <div class="form-row">
         <select id="itemCategory">
@@ -672,6 +698,65 @@
     "שונות"
   ];
 
+  // מאגר חכם להשלמה אוטומטית ושיוך קטגוריה מיידי
+  const AUTOCOMPLETE_CATALOG = {
+    "עגבניות": "ירקות ופירות",
+    "מלפפונים": "ירקות ופירות",
+    "בצל": "ירקות ופירות",
+    "תפוחי אדמה": "ירקות ופירות",
+    "בטטה": "ירקות ופירות",
+    "גזר": "ירקות ופירות",
+    "פלפל אדום": "ירקות ופירות",
+    "חסה": "ירקות ופירות",
+    "לימון": "ירקות ופירות",
+    "בננות": "ירקות ופירות",
+    "תפוחים": "ירקות ופירות",
+    "אבוקדו": "ירקות ופירות",
+    "לחם פרוס": "מאפים ולחמים",
+    "לחמניות": "מאפים ולחמים",
+    "פיתות": "מאפים ולחמים",
+    "חלות לשבת": "מאפים ולחמים",
+    "טורטיות": "מאפים ולחמים",
+    "חלב": "מוצרי חלב וביצים",
+    "גבינה לבנה": "מוצרי חלב וביצים",
+    "גבינה צהובה": "מוצרי חלב וביצים",
+    "קוטג'": "מוצרי חלב וביצים",
+    "חמאה": "מוצרי חלב וביצים",
+    "ביצים": "מוצרי חלב וביצים",
+    "יוגורט": "מוצרי חלב וביצים",
+    "שמנת חמוצה": "מוצרי חלב וביצים",
+    "שמנת מתוקה": "מוצרי חלב וביצים",
+    "אורז": "מזווה ויבשים",
+    "פסטה": "מזווה ויבשים",
+    "פתיתים": "מזווה ויבשים",
+    "שמן קנולה": "מזווה ויבשים",
+    "שמן זית": "מזווה ויבשים",
+    "סוכר": "מזווה ויבשים",
+    "מלח": "מזווה ויבשים",
+    "קמח": "מזווה ויבשים",
+    "קפה": "מזווה ויבשים",
+    "תה": "מזווה ויבשים",
+    "טונה": "מזווה ויבשים",
+    "רסק עגבניות": "מזווה ויבשים",
+    "חזה עוף": "בשר ודגים",
+    "כרעיים": "בשר ודגים",
+    "בשר טחון": "בשר ודגים",
+    "סלמון": "בשר ודגים",
+    "אמנון": "בשר ודגים",
+    "שניצל תירס": "קפואים",
+    "אפונה וגזר": "קפואים",
+    "שעועית ירוקה": "קפואים",
+    "צ'יפס": "קפואים",
+    "בצק עלים": "קפואים",
+    "נייר טואלט": "ניקיון ובית",
+    "סבון כלים": "ניקיון ובית",
+    "שמפו": "ניקיון ובית",
+    "מרכך כביסה": "ניקיון ובית",
+    "אבקת כביסה": "ניקיון ובית",
+    "שקיות אשפה": "ניקיון ובית",
+    "ספוג כלים": "ניקיון ובית"
+  };
+
   let items = [];
   let frequentItems = [];
   let shopMode = false;
@@ -680,12 +765,33 @@
   const addFrequentForm = document.getElementById('addFrequentForm');
   const itemNameInput = document.getElementById('itemName');
   const itemAmountInput = document.getElementById('itemAmount');
+  const itemNoteInput = document.getElementById('itemNote');
   const itemCategorySelect = document.getElementById('itemCategory');
+  const datalist = document.getElementById('smartSuggestions');
   const listContainer = document.getElementById('listContainer');
   const actionsBar = document.getElementById('actionsBar');
   const itemsCount = document.getElementById('itemsCount');
   const btnShopMode = document.getElementById('btnShopMode');
   const syncText = document.getElementById('syncText');
+
+  // טעינת רשימת ההצעות להשלמה אוטומטית
+  function populateSuggestions() {
+    datalist.innerHTML = '';
+    Object.keys(AUTOCOMPLETE_CATALOG).forEach(product => {
+      const opt = document.createElement('option');
+      opt.value = product;
+      datalist.appendChild(opt);
+    });
+  }
+  populateSuggestions();
+
+  // בחירה מתוך השלמה אוטומטית - התאמת קטגוריה מיידית
+  itemNameInput.addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    if (AUTOCOMPLETE_CATALOG[val]) {
+      itemCategorySelect.value = AUTOCOMPLETE_CATALOG[val];
+    }
+  });
 
   itemsCol.onSnapshot(
     (snapshot) => {
@@ -714,11 +820,12 @@
     }
   );
 
-  function addItem(name, amount, category) {
+  function addItem(name, amount, category, note) {
     itemsCol.add({
       name: name.trim(),
       amount: amount.trim() || '1',
       category: category,
+      note: note.trim() || '',
       completed: false,
       createdAt: Date.now()
     }).catch(err => alert("שגיאה בשמירה: " + err.message));
@@ -768,6 +875,35 @@
     renderList();
   }
 
+  // שיתוף מהיר לוואטסאפ
+  function shareWhatsApp() {
+    if (items.length === 0) {
+      alert("הרשימה ריקה, אין מה לשתף!");
+      return;
+    }
+
+    let text = "*🛒 רשימת קניות משפחת וולק:*\n\n";
+
+    CATEGORY_ORDER.forEach(cat => {
+      const catItems = items.filter(i => i.category === cat);
+      if (catItems.length > 0) {
+        text += `*${cat}:*\n`;
+        catItems.forEach(item => {
+          const status = item.completed ? "✔️ " : "▫️ ";
+          let line = `${status}${item.name} (${item.amount})`;
+          if (item.note) {
+            line += ` _[${item.note}]_`;
+          }
+          text += `${line}\n`;
+        });
+        text += "\n";
+      }
+    });
+
+    const url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(text);
+    window.open(url, '_blank');
+  }
+
   function triggerPrint() {
     switchTab('list');
     setTimeout(() => {
@@ -789,7 +925,7 @@
       alert(`המוצר "${frequentItem.name}" כבר מופיע ברשימה!`);
       return;
     }
-    addItem(frequentItem.name, frequentItem.amount, frequentItem.category);
+    addItem(frequentItem.name, frequentItem.amount, frequentItem.category, '');
   }
 
   function isItemFrequent(name) {
@@ -870,10 +1006,15 @@
           const isFreq = isItemFrequent(item.name);
           const itemDataStr = JSON.stringify(item).replace(/"/g, '&quot;');
 
+          const noteMarkup = item.note ? `<span class="item-note">💬 ${item.note}</span>` : '';
+
           li.innerHTML = `
             <div class="item-info" onclick="toggleComplete('${item.id}', ${item.completed})">
               <input type="checkbox" class="item-checkbox" ${item.completed ? 'checked' : ''} onclick="event.stopPropagation(); toggleComplete('${item.id}', ${item.completed})">
-              <span class="item-name">${item.name}</span>
+              <div class="item-text-group">
+                <span class="item-name">${item.name}</span>
+                ${noteMarkup}
+              </div>
               <span class="item-amount">${item.amount}</span>
             </div>
             <div class="item-actions">
@@ -895,12 +1036,14 @@
     e.preventDefault();
     const name = itemNameInput.value;
     const amount = itemAmountInput.value;
+    const note = itemNoteInput.value;
     const category = itemCategorySelect.value;
 
     if (name) {
-      addItem(name, amount, category);
+      addItem(name, amount, category, note);
       itemNameInput.value = '';
       itemAmountInput.value = '';
+      itemNoteInput.value = '';
       itemNameInput.focus();
     }
   });
