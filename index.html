@@ -472,6 +472,11 @@
       color: var(--gold);
     }
 
+    .btn-icon.btn-edit:hover {
+      color: var(--primary);
+      background: #eff6ff;
+    }
+
     .btn-icon.btn-delete:hover {
       color: var(--danger);
       background: #fee2e2;
@@ -545,6 +550,73 @@
       line-height: 1.6;
     }
 
+    /* Modal עריכה */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal-header {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .modal-actions button {
+      flex: 1;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-modal-save {
+      background: var(--primary-gradient);
+      color: white;
+    }
+
+    .btn-modal-cancel {
+      background: #f1f5f9;
+      color: var(--text-secondary);
+    }
+
     @media print {
       body {
         background: #ffffff !important;
@@ -569,7 +641,8 @@
       .add-form,
       .actions-bar,
       .item-actions,
-      #viewFrequent {
+      #viewFrequent,
+      .modal-overlay {
         display: none !important;
       }
 
@@ -656,7 +729,8 @@
         <input type="text" id="itemNote" class="input-note" placeholder="הערה (אופציונלי, למשל: רק במבצע)">
       </div>
       <div class="form-row">
-        <select id="itemCategory">
+        <select id="itemCategory" required>
+          <option value="" disabled selected>📂 בחר קטגוריה...</option>
           <option value="ירקות ופירות">🥦 ירקות ופירות</option>
           <option value="מאפים ולחמים">🥖 מאפים ולחמים</option>
           <option value="מוצרי חלב וביצים">🧀 מוצרי חלב וביצים</option>
@@ -690,7 +764,8 @@
         <input type="text" id="freqAmount" class="input-amount" placeholder="כמות">
       </div>
       <div class="form-row">
-        <select id="freqCategory">
+        <select id="freqCategory" required>
+          <option value="" disabled selected>📂 בחר קטגוריה...</option>
           <option value="ירקות ופירות">🥦 ירקות ופירות</option>
           <option value="מאפים ולחמים">🥖 מאפים ולחמים</option>
           <option value="מוצרי חלב וביצים">🧀 מוצרי חלב וביצים</option>
@@ -705,6 +780,36 @@
     </form>
 
     <div class="frequent-grid" id="frequentContainer"></div>
+  </div>
+</div>
+
+<!-- חלונית עריכת מוצר (Modal) -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span>✏️ עריכת מוצר</span>
+      <button type="button" class="btn-icon" onclick="closeEditModal()">&times;</button>
+    </div>
+    <input type="hidden" id="editItemId">
+    <input type="text" id="editItemName" placeholder="שם המוצר" required>
+    <div class="form-row">
+      <input type="text" id="editItemAmount" class="input-amount" placeholder="כמות">
+      <select id="editItemCategory" style="flex: 1.8;">
+        <option value="ירקות ופירות">🥦 ירקות ופירות</option>
+        <option value="מאפים ולחמים">🥖 מאפים ולחמים</option>
+        <option value="מוצרי חלב וביצים">🧀 מוצרי חלב וביצים</option>
+        <option value="מזווה ויבשים">🌾 מזווה ויבשים</option>
+        <option value="בשר ודגים">🥩 בשר ודגים</option>
+        <option value="קפואים">❄️ קפואים</option>
+        <option value="ניקיון ובית">🧼 ניקיון ובית</option>
+        <option value="שונות">📦 שונות</option>
+      </select>
+    </div>
+    <input type="text" id="editItemNote" placeholder="הערה (אופציונלי)">
+    <div class="modal-actions">
+      <button type="button" class="btn-modal-save" onclick="saveItemEdit()">שמור שינויים</button>
+      <button type="button" class="btn-modal-cancel" onclick="closeEditModal()">ביטול</button>
+    </div>
   </div>
 </div>
 
@@ -755,6 +860,7 @@
     "חלות לשבת": "מאפים ולחמים",
     "טורטיות": "מאפים ולחמים",
     "חלב": "מוצרי חלב וביצים",
+    "גבינה": "מוצרי חלב וביצים",
     "גבינה לבנה": "מוצרי חלב וביצים",
     "גבינה צהובה": "מוצרי חלב וביצים",
     "קוטג'": "מוצרי חלב וביצים",
@@ -812,7 +918,14 @@
   const syncText = document.getElementById('syncText');
   const btnMic = document.getElementById('btnMic');
 
-  // השלמה אוטומטית
+  // רכיבי Modal עריכה
+  const editModal = document.getElementById('editModal');
+  const editItemId = document.getElementById('editItemId');
+  const editItemName = document.getElementById('editItemName');
+  const editItemAmount = document.getElementById('editItemAmount');
+  const editItemCategory = document.getElementById('editItemCategory');
+  const editItemNote = document.getElementById('editItemNote');
+
   function populateSuggestions() {
     datalist.innerHTML = '';
     Object.keys(AUTOCOMPLETE_CATALOG).forEach(product => {
@@ -830,7 +943,7 @@
     }
   });
 
-  // מנגנון זיהוי קולי (Web Speech API)
+  // זיהוי קולי
   let recognition = null;
   let isListening = false;
 
@@ -849,21 +962,13 @@
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript.trim();
       itemNameInput.value = transcript;
-      
-      // בדיקה אם יש זיהוי של קטגוריה
       if (AUTOCOMPLETE_CATALOG[transcript]) {
         itemCategorySelect.value = AUTOCOMPLETE_CATALOG[transcript];
       }
     };
 
-    recognition.onerror = (event) => {
-      console.error('שגיאת הקלטה קולית:', event.error);
-      stopSpeech();
-    };
-
-    recognition.onend = () => {
-      stopSpeech();
-    };
+    recognition.onerror = () => stopSpeech();
+    recognition.onend = () => stopSpeech();
   } else {
     btnMic.style.display = 'none';
   }
@@ -938,6 +1043,42 @@
 
   function deleteFrequent(id) {
     frequentCol.doc(id).delete();
+  }
+
+  // פונקציות עריכת מוצר
+  function openEditModal(item) {
+    editItemId.value = item.id;
+    editItemName.value = item.name;
+    editItemAmount.value = item.amount || '';
+    editItemCategory.value = item.category;
+    editItemNote.value = item.note || '';
+    editModal.classList.add('active');
+  }
+
+  function closeEditModal() {
+    editModal.classList.remove('active');
+  }
+
+  function saveItemEdit() {
+    const id = editItemId.value;
+    const name = editItemName.value.trim();
+    const amount = editItemAmount.value.trim() || '1';
+    const category = editItemCategory.value;
+    const note = editItemNote.value.trim();
+
+    if (!name) {
+      alert('נא להזין שם מוצר');
+      return;
+    }
+
+    itemsCol.doc(id).update({
+      name: name,
+      amount: amount,
+      category: category,
+      note: note
+    }).then(() => {
+      closeEditModal();
+    }).catch(err => alert("שגיאה בעדכון: " + err.message));
   }
 
   function toggleFrequentFromList(item) {
@@ -1114,6 +1255,7 @@
               <span class="item-amount">${item.amount}</span>
             </div>
             <div class="item-actions">
+              <button class="btn-icon btn-edit" onclick="openEditModal(${itemDataStr})" title="ערוך פריט">✏️</button>
               <button class="btn-icon btn-star ${isFreq ? 'is-frequent' : ''}" onclick="toggleFrequentFromList(${itemDataStr})" title="${isFreq ? 'הסר מקבועים' : 'שמור כקבוע'}">★</button>
               <button class="btn-icon btn-delete" onclick="deleteItem('${item.id}')" title="מחק פריט">&times;</button>
             </div>
@@ -1135,11 +1277,17 @@
     const note = itemNoteInput.value;
     const category = itemCategorySelect.value;
 
+    if (!category) {
+      alert('נא לבחור קטגוריה לפריט!');
+      return;
+    }
+
     if (name) {
       addItem(name, amount, category, note);
       itemNameInput.value = '';
       itemAmountInput.value = '';
       itemNoteInput.value = '';
+      itemCategorySelect.value = ''; // איפוס לברירת מחדל "בחר קטגוריה"
       itemNameInput.focus();
     }
   });
@@ -1150,6 +1298,11 @@
     const amount = document.getElementById('freqAmount').value.trim() || '1';
     const category = document.getElementById('freqCategory').value;
 
+    if (!category) {
+      alert('נא לבחור קטגוריה!');
+      return;
+    }
+
     if (name) {
       if (isItemFrequent(name)) {
         alert('המוצר כבר קיים ברשימת הקבועים!');
@@ -1158,6 +1311,7 @@
       frequentCol.add({ name, amount, category });
       document.getElementById('freqName').value = '';
       document.getElementById('freqAmount').value = '';
+      document.getElementById('freqCategory').value = '';
     }
   });
 </script>
