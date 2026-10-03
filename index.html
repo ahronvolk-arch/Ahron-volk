@@ -3,354 +3,394 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>רשימת קניות משפחתית</title>
-  
-  <!-- Firebase SDK -->
+  <title>קניות משפחת וולק</title>
+
+  <!-- Firebase Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <style>
     :root {
-      --primary: #4f46e5;
-      --primary-light: #e0e7ff;
-      --bg: #f1f5f9;
+      --bg-color: #f0f4f8;
       --card-bg: #ffffff;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --danger: #ef4444;
-      --success: #10b981;
-      --radius: 16px;
+      --primary: #4361ee;
+      --primary-light: #eef2ff;
+      --text: #2b2d42;
+      --text-light: #8d99ae;
+      --danger: #ef233c;
+      --border-radius: 18px;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
 
     body {
-      background-color: var(--bg);
-      color: var(--text-main);
-      padding-bottom: 90px;
+      background-color: var(--bg-color);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
     }
 
-    /* סרגל עליון */
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* מסך התחברות והרשמה */
+    .auth-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      z-index: 1000;
+    }
+
+    .auth-card {
+      background: var(--card-bg);
+      padding: 32px 24px;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+      text-align: center;
+    }
+
+    .auth-logo {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    .auth-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .auth-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-light);
+      margin-bottom: 24px;
+    }
+
+    .auth-input {
+      width: 100%;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .auth-input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-auth-primary {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 4px;
+      box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    }
+
+    .auth-toggle-link {
+      margin-top: 18px;
+      font-size: 0.9rem;
+      color: var(--primary);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .auth-error {
+      color: var(--danger);
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      min-height: 18px;
+    }
+
+    /* כותרת עליונה של האפליקציה המקורית */
     header {
-      background: #ffffff;
-      padding: 16px 20px;
+      padding: 24px 20px 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      position: sticky;
-      top: 0;
-      z-index: 100;
     }
 
-    .header-title-box h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--text-main);
+    .app-title-area h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text);
     }
 
-    .household-tag {
+    .user-email-tag {
       font-size: 0.8rem;
-      color: var(--primary);
-      font-weight: 600;
-      display: inline-block;
+      color: var(--text-light);
       margin-top: 2px;
+      display: block;
     }
 
-    .btn-switch-account {
-      background: var(--primary-light);
-      color: var(--primary);
-      border: none;
+    .btn-logout {
+      background: white;
+      border: 1px solid #e2e8f0;
+      color: var(--text-light);
       padding: 8px 12px;
-      border-radius: 20px;
+      border-radius: 12px;
       font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
     }
 
-    /* לשוניות תפריט */
-    .tabs-nav {
+    /* לשוניות הניווט המקוריות */
+    .tabs-bar {
       display: flex;
-      margin: 16px 20px;
+      margin: 8px 20px 16px;
       background: #e2e8f0;
+      border-radius: 14px;
       padding: 4px;
-      border-radius: 12px;
     }
 
-    .tab-btn {
+    .tab-item {
       flex: 1;
+      text-align: center;
       padding: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-light);
+      border-radius: 10px;
+      cursor: pointer;
       border: none;
       background: transparent;
-      border-radius: 10px;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
       transition: all 0.2s;
     }
 
-    .tab-btn.active {
+    .tab-item.active {
       background: #ffffff;
       color: var(--primary);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.06);
     }
 
-    /* טופס הוספה */
-    .add-form-container {
-      margin: 0 20px 16px;
+    /* טופס הוספת מוצר */
+    .add-section {
+      padding: 0 20px;
+      margin-bottom: 20px;
+    }
+
+    .add-box {
       background: var(--card-bg);
-      padding: 14px;
-      border-radius: var(--radius);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      border-radius: var(--border-radius);
+      padding: 12px 14px;
       display: flex;
-      gap: 8px;
+      gap: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      align-items: center;
     }
 
-    .add-input {
+    .item-input {
       flex: 2;
-      border: 1px solid #cbd5e1;
-      padding: 10px 14px;
-      border-radius: 10px;
+      border: none;
       font-size: 1rem;
       outline: none;
-    }
-
-    .add-input:focus {
-      border-color: var(--primary);
+      color: var(--text);
     }
 
     .category-select {
       flex: 1.2;
-      border: 1px solid #cbd5e1;
+      border: 1px solid #edf2f7;
       border-radius: 10px;
-      padding: 0 8px;
-      font-size: 0.9rem;
-      background: white;
+      padding: 8px 6px;
+      font-size: 0.85rem;
       outline: none;
+      background-color: #f8fafc;
+      color: var(--text);
     }
 
-    .btn-add {
+    .btn-add-action {
       background: var(--primary);
       color: white;
       border: none;
-      border-radius: 10px;
-      padding: 10px 16px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    /* רשימות וכרטיסיות */
-    .content-area {
-      padding: 0 20px;
-    }
-
-    .category-group {
-      margin-bottom: 16px;
-    }
-
-    .category-header {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      margin-bottom: 8px;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      font-size: 1.4rem;
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
     }
 
-    .item-card {
+    /* תוכן ורשימת מוצרים */
+    .content-box {
+      flex: 1;
+      padding: 0 20px 40px;
+    }
+
+    .category-block {
+      margin-bottom: 20px;
+    }
+
+    .category-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-light);
+      margin-bottom: 10px;
+      padding-right: 4px;
+    }
+
+    .item-row {
       background: var(--card-bg);
-      border-radius: 12px;
-      padding: 12px 16px;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-      transition: background 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
     }
 
-    .item-card.completed {
-      background: #f8fafc;
-      opacity: 0.6;
+    .item-row.completed {
+      background: rgba(255, 255, 255, 0.6);
+      opacity: 0.55;
     }
 
-    .item-card.completed .item-name {
+    .item-row.completed .item-title {
       text-decoration: line-through;
-      color: var(--text-muted);
     }
 
-    .item-right {
+    .item-left-side {
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    .item-checkbox {
+    .custom-check {
       width: 22px;
       height: 22px;
       accent-color: var(--primary);
       cursor: pointer;
     }
 
-    .item-name {
+    .item-title {
       font-size: 1rem;
       font-weight: 500;
     }
 
-    .item-actions {
+    .actions-side {
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
 
-    .btn-icon {
+    .icon-action-btn {
       background: none;
       border: none;
-      font-size: 1rem;
+      padding: 6px;
       cursor: pointer;
-      padding: 4px;
-      color: var(--text-muted);
-    }
-
-    .btn-icon:hover {
-      color: var(--danger);
-    }
-
-    /* מסך בחירת משפחה / התחברות */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 1000;
-      backdrop-filter: blur(4px);
-    }
-
-    .modal-box {
-      background: white;
-      border-radius: 20px;
-      padding: 24px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-      text-align: center;
-    }
-
-    .modal-box h2 {
-      font-size: 1.3rem;
-      margin-bottom: 8px;
-    }
-
-    .modal-box p {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-      line-height: 1.4;
-    }
-
-    .modal-input {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e2e8f0;
-      border-radius: 12px;
       font-size: 1.1rem;
+      color: var(--text-light);
+      border-radius: 8px;
+    }
+
+    .empty-message {
       text-align: center;
-      font-weight: bold;
-      margin-bottom: 16px;
-      outline: none;
-    }
-
-    .modal-input:focus {
-      border-color: var(--primary);
-    }
-
-    .btn-save-household {
-      width: 100%;
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
+      padding: 60px 20px;
+      color: var(--text-light);
+      font-size: 0.95rem;
     }
 
     .hidden {
       display: none !important;
     }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text-muted);
-    }
   </style>
 </head>
 <body>
 
-  <!-- מסך הגדרת משפחה / חשבון (מוצג בפעם הראשונה או בלחיצה על החלף) -->
-  <div id="householdModal" class="modal-overlay hidden">
-    <div class="modal-box">
-      <h2>🛒 בחירת חשבון משפחתי</h2>
-      <p>
-        הזן שם משפחה או קוד משותף.<br>
-        כל מי שיזין את אותו הקוד בדיוק (למשל אתה ואשתך) יחלוק את אותה הרשימה בזמן אמת!
-      </p>
-      <input type="text" id="householdInput" class="modal-input" placeholder="למשל: משפחת וולק" autofocus>
-      <button class="btn-save-household" onclick="setHousehold()">התחבר לרשימה</button>
+  <!-- מסך התחברות / הרשמה מאובטח -->
+  <div id="authScreen" class="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-logo">🛒</div>
+      <div class="auth-title" id="authTitleText">התחברות לקניות</div>
+      <div class="auth-subtitle" id="authSubtitleText">הזן אימייל וסיסמה כדי להתחבר לרשימה שלך</div>
+      
+      <div class="auth-error" id="authErrorMessage"></div>
+
+      <input type="email" id="authEmail" class="auth-input" placeholder="אימייל">
+      <input type="password" id="authPassword" class="auth-input" placeholder="סיסמה (לפחות 6 תווים)">
+
+      <button class="btn-auth-primary" id="btnAuthSubmit" onclick="handleAuthAction()">התחבר</button>
+      
+      <div class="auth-toggle-link" id="authToggleLink" onclick="toggleAuthMode()">אין לך חשבון עדיין? לחץ כאן להרשמה</div>
     </div>
   </div>
 
-  <!-- סרגל עליון -->
-  <header>
-    <div class="header-title-box">
-      <h1 id="appTitle">קניות משפחת וולק</h1>
-      <span class="household-tag" id="currentHouseholdDisplay"></span>
+  <!-- האפליקציה הראשית -->
+  <div class="app-container">
+    <header>
+      <div class="app-title-area">
+        <h1>קניות לבית</h1>
+        <span class="user-email-tag" id="userEmailDisplay">מחובר</span>
+      </div>
+      <button class="btn-logout" onclick="logoutUser()">התנתק</button>
+    </header>
+
+    <!-- מעבר בין רשימה שוטפת למוצרים קבועים -->
+    <div class="tabs-bar">
+      <button class="tab-item active" id="tabItemsBtn" onclick="switchActiveTab('items')">רשימת קניות</button>
+      <button class="tab-item" id="tabRegularBtn" onclick="switchActiveTab('regular')">⭐ מוצרים קבועים</button>
     </div>
-    <button class="btn-switch-account" onclick="openHouseholdModal()">👨‍👩‍👧 החלף משפחה</button>
-  </header>
 
-  <!-- בחירת לשונית (רשימה שוטפת / מוצרים קבועים) -->
-  <div class="tabs-nav">
-    <button class="tab-btn active" id="tabCurrent" onclick="switchTab('current')">רשימת קניות</button>
-    <button class="tab-btn" id="tabRegular" onclick="switchTab('regular')">⭐ מוצרים קבועים</button>
+    <!-- שורת הוספת מוצר -->
+    <div class="add-section">
+      <div class="add-box">
+        <input type="text" id="newProductName" class="item-input" placeholder="הוסף מוצר...">
+        <select id="newProductCategory" class="category-select">
+          <option value="כללי">כללי</option>
+          <option value="ירקות ופירות">ירקות ופירות</option>
+          <option value="חלב וביצים">חלב וביצים</option>
+          <option value="מאפים ולחם">מאפים ולחם</option>
+          <option value="בשר ודגים">בשר ודגים</option>
+          <option value="שימורים ויבשים">שימורים ויבשים</option>
+          <option value="חטיפים ומתוקים">חטיפים ומתוקים</option>
+          <option value="משקאות">משקאות</option>
+          <option value="ניקיון ובית">ניקיון ובית</option>
+        </select>
+        <button class="btn-add-action" onclick="addItem()">+</button>
+      </div>
+    </div>
+
+    <!-- אזור המוצרים -->
+    <main class="content-box" id="listContent">
+      <div class="empty-message">טוען נתונים...</div>
+    </main>
   </div>
-
-  <!-- טופס הוספת מוצר מהיר -->
-  <div class="add-form-container">
-    <input type="text" id="newItemName" class="add-input" placeholder="הוסף מוצר...">
-    <select id="newItemCategory" class="category-select">
-      <option value="כללי">כללי</option>
-      <option value="ירקות ופירות">ירקות ופירות</option>
-      <option value="חלב וביצים">חלב וביצים</option>
-      <option value="לחמים ומאפים">לחמים ומאפים</option>
-      <option value="בשר ודגים">בשר ודגים</option>
-      <option value="שימורים ויבשים">שימורים ויבשים</option>
-      <option value="חטיפים ומתוקים">חטיפים ומתוקים</option>
-      <option value="שתייה">שתייה</option>
-      <option value="ניקיון ובית">ניקיון ובית</option>
-    </select>
-    <button class="btn-add" onclick="addNewItem()">+</button>
-  </div>
-
-  <!-- אזור תוכן המוצרים -->
-  <main class="content-area" id="itemsContainer">
-    <div class="empty-state">טוען מוצרים...</div>
-  </main>
 
   <script>
-    // 1. הגדרות Firebase של הפרויקט
+    // 1. הגדרות Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyD_gqEqymNTkmhKCb1NATJ2MlJVWoruOoM",
       authDomain: "home-groceries-75b84.firebaseapp.com",
@@ -359,116 +399,150 @@
     };
 
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // 2. ניהול מצב ואחסון מקומי של המשפחה/חשבון
-    let currentHousehold = localStorage.getItem('household_code') || 'משפחת וולק';
-    let currentTab = 'current'; // 'current' או 'regular'
-    let unsubscribeFirestore = null;
+    let currentUser = null;
+    let currentTab = 'items'; // 'items' או 'regular'
+    let isRegisterMode = false;
+    let unsubscribeSnapshot = null;
 
-    // אתחול האפליקציה בטעינה
-    window.addEventListener('DOMContentLoaded', () => {
-      initApp();
+    // 2. בדיקת מצב חיבור משתמש (נשאר מחובר גם אחרי סגירת הדפדפן)
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      const authScreen = document.getElementById('authScreen');
+      if (user) {
+        authScreen.classList.add('hidden');
+        document.getElementById('userEmailDisplay').innerText = user.email;
+        loadUserItems();
+      } else {
+        authScreen.classList.remove('hidden');
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+        document.getElementById('listContent').innerHTML = '';
+      }
     });
 
-    function initApp() {
-      if (!localStorage.getItem('household_code')) {
-        localStorage.setItem('household_code', currentHousehold);
+    // 3. החלפה בין מסך התחברות למסך הרשמה
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      const title = document.getElementById('authTitleText');
+      const subtitle = document.getElementById('authSubtitleText');
+      const submitBtn = document.getElementById('btnAuthSubmit');
+      const toggleLink = document.getElementById('authToggleLink');
+      const errorDiv = document.getElementById('authErrorMessage');
+      errorDiv.innerText = '';
+
+      if (isRegisterMode) {
+        title.innerText = "יצירת חשבון חדש";
+        subtitle.innerText = "הזן אימייל וסיסמה כדי לפתוח רשימה משפחתית נפרדת";
+        submitBtn.innerText = "הירשם עכשיו";
+        toggleLink.innerText = "כבר רשום? לחץ כאן להתחברות";
+      } else {
+        title.innerText = "התחברות לקניות";
+        subtitle.innerText = "הזן אימייל וסיסמה כדי להתחבר לרשימה שלך";
+        submitBtn.innerText = "התחבר";
+        toggleLink.innerText = "אין לך חשבון עדיין? לחץ כאן להרשמה";
       }
-      updateUIHeader();
-      listenToItems();
     }
 
-    function updateUIHeader() {
-      document.getElementById('appTitle').innerText = `קניות ${currentHousehold}`;
-      document.getElementById('currentHouseholdDisplay').innerText = `קוד פעיל: ${currentHousehold}`;
-    }
+    // 4. ביצוע התחברות / הרשמה
+    async function handleAuthAction() {
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const errorDiv = document.getElementById('authErrorMessage');
+      errorDiv.innerText = '';
 
-    // 3. מודל החלפת משפחה
-    function openHouseholdModal() {
-      document.getElementById('householdInput').value = currentHousehold;
-      document.getElementById('householdModal').classList.remove('hidden');
-    }
-
-    function setHousehold() {
-      const input = document.getElementById('householdInput').value.trim();
-      if (!input) return;
-      
-      currentHousehold = input;
-      localStorage.setItem('household_code', currentHousehold);
-      document.getElementById('householdModal').classList.add('hidden');
-      
-      updateUIHeader();
-      listenToItems(); // מאזין מיד לרשימה של המשפחה החדשה
-    }
-
-    // 4. מעבר בין לשוניות
-    function switchTab(tab) {
-      currentTab = tab;
-      document.getElementById('tabCurrent').classList.toggle('active', tab === 'current');
-      document.getElementById('tabRegular').classList.toggle('active', tab === 'regular');
-      listenToItems();
-    }
-
-    // 5. האזנה לשינויים ב-Firestore בזמן אמת עבור החשבון הנבחר
-    function listenToItems() {
-      if (unsubscribeFirestore) unsubscribeFirestore();
-
-      const collectionName = currentTab === 'current' ? 'items' : 'regular_items';
-      
-      // כל משפחה מקבלת מסמך נפרד לחלוטין תחת תת-האוסף שלה
-      unsubscribeFirestore = db.collection('households')
-        .doc(currentHousehold)
-        .collection(collectionName)
-        .orderBy('timestamp', 'desc')
-        .onSnapshot(snapshot => {
-          const items = [];
-          snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-          renderItems(items);
-        }, error => {
-          console.error("שגיאה בטעינת נתונים:", error);
-        });
-    }
-
-    // 6. הצגת הפריטים מחולקים לפי קטגוריות
-    function renderItems(items) {
-      const container = document.getElementById('itemsContainer');
-      if (items.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            הרשימה ריקה כרגע.<br>
-            הוסף מוצרים למעלה או בחר מוצרים קבועים.
-          </div>
-        `;
+      if (!email || !password) {
+        errorDiv.innerText = "נא למלא אימייל וסיסמה";
         return;
       }
 
-      // חלוקה לקטגוריות
-      const categories = {};
-      items.forEach(item => {
-        const cat = item.category || 'כללי';
-        if (!categories[cat]) categories[cat] = [];
-        categories[cat].push(item);
+      try {
+        if (isRegisterMode) {
+          await auth.createUserWithEmailAndPassword(email, password);
+        } else {
+          await auth.signInWithEmailAndPassword(email, password);
+        }
+      } catch (err) {
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          errorDiv.innerText = "אימייל או סיסמה לא נכונים";
+        } else if (err.code === 'auth/email-already-in-use') {
+          errorDiv.innerText = "כתובת אימייל זו כבר קיימת במערכת";
+        } else if (err.code === 'auth/weak-password') {
+          errorDiv.innerText = "הסיסמה צריכה להכיל לפחות 6 תווים";
+        } else {
+          errorDiv.innerText = "שגיאה בחיבור: " + err.message;
+        }
+      }
+    }
+
+    // 5. התנתקות
+    function logoutUser() {
+      auth.signOut();
+    }
+
+    // 6. מעבר בין לשוניות (קניות / קבועים)
+    function switchActiveTab(tabName) {
+      currentTab = tabName;
+      document.getElementById('tabItemsBtn').classList.toggle('active', tabName === 'items');
+      document.getElementById('tabRegularBtn').classList.toggle('active', tabName === 'regular');
+      loadUserItems();
+    }
+
+    // 7. טעינת נתונים בזמן אמת מתוך התיקייה הפרטית של המשתמש בלבד
+    function loadUserItems() {
+      if (!currentUser) return;
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+      const subCollection = currentTab === 'items' ? 'items' : 'regular_items';
+
+      // כל משתמש קורא רק מה-UID שלו - אף אחד אחר לא רואה כלום!
+      unsubscribeSnapshot = db.collection('users')
+        .doc(currentUser.uid)
+        .collection(subCollection)
+        .orderBy('timestamp', 'desc')
+        .onSnapshot(snapshot => {
+          const list = [];
+          snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+          renderItemsList(list);
+        }, err => {
+          console.error("שגיאה בטעינת פריטים:", err);
+        });
+    }
+
+    // 8. רינדור הפריטים לפי קטגוריות בעיצוב הנקי
+    function renderItemsList(items) {
+      const container = document.getElementById('listContent');
+      if (items.length === 0) {
+        container.innerHTML = `<div class="empty-message">אין מוצרים ברשימה זו כרגע</div>`;
+        return;
+      }
+
+      const grouped = {};
+      items.forEach(it => {
+        const cat = it.category || 'כללי';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(it);
       });
 
       let html = '';
-      for (const [category, catItems] of Object.entries(categories)) {
+      for (const [category, groupItems] of Object.entries(grouped)) {
         html += `
-          <div class="category-group">
-            <div class="category-header">🏷️ ${category}</div>
-            ${catItems.map(item => `
-              <div class="item-card ${item.completed ? 'completed' : ''}">
-                <div class="item-right">
-                  <input type="checkbox" class="item-checkbox" 
+          <div class="category-block">
+            <div class="category-title">${category}</div>
+            ${groupItems.map(item => `
+              <div class="item-row ${item.completed ? 'completed' : ''}">
+                <div class="item-left-side">
+                  <input type="checkbox" class="custom-check" 
                     ${item.completed ? 'checked' : ''} 
-                    onchange="toggleItemStatus('${item.id}',${!item.completed})">
-                  <span class="item-name">${item.name}</span>
+                    onchange="toggleCheck('${item.id}',${!item.completed})">
+                  <span class="item-title">${item.name}</span>
                 </div>
-                <div class="item-actions">
+                <div class="actions-side">
                   ${currentTab === 'regular' ? `
-                    <button class="btn-icon" title="העבר לרשימת הקניות" onclick="addRegularToCurrent('${item.name}', '${item.category}')">🛒</button>
+                    <button class="icon-action-btn" title="הוסף לרשימת הקניות" onclick="addFromRegular('${item.name}', '${item.category}')">🛒</button>
                   ` : ''}
-                  <button class="btn-icon" title="מחיקה" onclick="deleteItem('${item.id}')">🗑️</button>
+                  <button class="icon-action-btn" title="מחיקה" onclick="deleteProduct('${item.id}')">🗑️</button>
                 </div>
               </div>
             `).join('')}
@@ -478,21 +552,21 @@
       container.innerHTML = html;
     }
 
-    // 7. הוספת מוצר חדש
-    async function addNewItem() {
-      const input = document.getElementById('newItemName');
-      const catSelect = document.getElementById('newItemCategory');
-      const name = input.value.trim();
+    // 9. הוספת מוצר
+    async function addItem() {
+      const nameInput = document.getElementById('newProductName');
+      const catSelect = document.getElementById('newProductCategory');
+      const name = nameInput.value.trim();
       const category = catSelect.value;
 
-      if (!name) return;
+      if (!name || !currentUser) return;
 
-      const collectionName = currentTab === 'current' ? 'items' : 'regular_items';
+      const subCollection = currentTab === 'items' ? 'items' : 'regular_items';
 
       try {
-        await db.collection('households')
-          .doc(currentHousehold)
-          .collection(collectionName)
+        await db.collection('users')
+          .doc(currentUser.uid)
+          .collection(subCollection)
           .add({
             name: name,
             category: category,
@@ -500,41 +574,44 @@
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
           });
 
-        input.value = '';
+        nameInput.value = '';
       } catch (e) {
-        console.error("שגיאה בהוספת מוצר:", e);
+        console.error("שגיאה בהוספה:", e);
       }
     }
 
-    // הוספה בלחיצה על Enter
-    document.getElementById('newItemName').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') addNewItem();
+    // הוספה ב-Enter
+    document.getElementById('newProductName').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addItem();
     });
 
-    // 8. שינוי סטטוס מוצר (נרכש / סומן)
-    async function toggleItemStatus(id, newStatus) {
-      const collectionName = currentTab === 'current' ? 'items' : 'regular_items';
-      await db.collection('households')
-        .doc(currentHousehold)
-        .collection(collectionName)
+    // 10. סימון מוצר
+    async function toggleCheck(id, status) {
+      if (!currentUser) return;
+      const subCollection = currentTab === 'items' ? 'items' : 'regular_items';
+      await db.collection('users')
+        .doc(currentUser.uid)
+        .collection(subCollection)
         .doc(id)
-        .update({ completed: newStatus });
+        .update({ completed: status });
     }
 
-    // 9. מחיקת מוצר
-    async function deleteItem(id) {
-      const collectionName = currentTab === 'current' ? 'items' : 'regular_items';
-      await db.collection('households')
-        .doc(currentHousehold)
-        .collection(collectionName)
+    // 11. מחיקת מוצר
+    async function deleteProduct(id) {
+      if (!currentUser) return;
+      const subCollection = currentTab === 'items' ? 'items' : 'regular_items';
+      await db.collection('users')
+        .doc(currentUser.uid)
+        .collection(subCollection)
         .doc(id)
         .delete();
     }
 
-    // 10. העברת מוצר קבוע ישירות לרשימת הקניות השוטפת
-    async function addRegularToCurrent(name, category) {
-      await db.collection('households')
-        .doc(currentHousehold)
+    // 12. הוספת מוצר קבוע לרשימת הקניות
+    async function addFromRegular(name, category) {
+      if (!currentUser) return;
+      await db.collection('users')
+        .doc(currentUser.uid)
         .collection('items')
         .add({
           name: name,
@@ -542,7 +619,7 @@
           completed: false,
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-      alert(`המוצר "${name}" נוסף לרשימת הקניות!`);
+      alert(`"${name}" נוסף לרשימת הקניות!`);
     }
   </script>
 </body>
