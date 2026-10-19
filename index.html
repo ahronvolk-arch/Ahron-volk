@@ -635,7 +635,7 @@
       position: fixed;
       inset: 0;
       background: #f1f5f9;
-      display: flex;
+      display: none; /* מוסתר כברירת מחדל כדי לא לקפוץ במסך */
       align-items: center;
       justify-content: center;
       z-index: 2000;
@@ -809,7 +809,7 @@
   <div class="sync-status">
     <div class="sync-status-group">
       <span class="sync-dot" id="syncDot"></span>
-      <span id="syncText">מתחבר לענן...</span>
+      <span id="syncText">טוען נתונים...</span>
     </div>
     <span class="user-info-text" id="currentUserDisplay"></span>
   </div>
@@ -819,7 +819,7 @@
     <button class="tab-btn" id="tabFrequent" onclick="switchTab('frequent')">⭐ מוצרים קבועים</button>
   </div>
 
-  <!-- לשונית רשימת קניות - רק כותבים שם מוצר והסיווג מתבצע אוטומטית! -->
+  <!-- לשונית רשימת קניות -->
   <div id="viewList">
     <form id="addItemForm" class="add-form">
       <div class="form-row">
@@ -875,7 +875,7 @@
   </div>
 </div>
 
-<!-- חלונית עריכת מוצר (Modal) -->
+<!-- חלונית עריכת מוצר -->
 <div class="modal-overlay" id="editModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -906,7 +906,16 @@
 </div>
 
 <script>
-  // הגדרות Firebase
+  // בדיקה מיידית עוד לפני טעינת הרשת - האם המשתמש כבר מחובר?
+  const cachedUserEmail = localStorage.getItem('last_user_email');
+  const cachedUid = localStorage.getItem('last_user_uid');
+  if (cachedUserEmail) {
+    document.getElementById('currentUserDisplay').textContent = cachedUserEmail;
+  } else {
+    // רק אם המכשיר אינו מוכר כלל - מציגים את מסך ההתחברות מיד
+    document.getElementById('authOverlay').style.display = 'flex';
+  }
+
   const firebaseConfig = {
     apiKey: "AIzaSyD_gqEqymNTkmhKCb1NATJ2MlJVWoruOoM",
     authDomain: "home-groceries-75b84.firebaseapp.com",
@@ -920,6 +929,11 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
+
+  // הפעלת זיכרון מטמון מקומי בטלפון - טעינה מיידית ללא המתנה לרשת
+  db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+    console.warn("Offline persistence note:", err.code);
+  });
 
   let currentUser = null;
   let itemsCol = null;
@@ -938,9 +952,7 @@
     "שונות"
   ];
 
-  // מאגר סיווג מהיר ומקיף
   const AUTOCOMPLETE_CATALOG = {
-    // ירקות ופירות
     "עגבניות": "ירקות ופירות", "עגבניה": "ירקות ופירות", "עגבניות שרי": "ירקות ופירות", "מלפפונים": "ירקות ופירות", "מלפפון": "ירקות ופירות",
     "בצל": "ירקות ופירות", "בצל ירוק": "ירקות ופירות", "בצל סגול": "ירקות ופירות", "תפוחי אדמה": "ירקות ופירות", "תפוח אדמה": "ירקות ופירות",
     "בטטה": "ירקות ופירות", "גזר": "ירקות ופירות", "פלפל": "ירקות ופירות", "גמבה": "ירקות ופירות", "פלפל אדום": "ירקות ופירות",
@@ -950,52 +962,23 @@
     "אגס": "ירקות ופירות", "תפוזים": "ירקות ופירות", "קלמנטינה": "ירקות ופירות", "אבטיח": "ירקות ופירות", "מלון": "ירקות ופירות",
     "ענבים": "ירקות ופירות", "תותים": "ירקות ופירות", "אבוקדו": "ירקות ופירות", "פטריות": "ירקות ופירות", "פטרוזיליה": "ירקות ופירות",
     "כוסברה": "ירקות ופירות", "שמיר": "ירקות ופירות", "נענע": "ירקות ופירות", "בזיליקום": "ירקות ופירות",
-
-    // מאפים ולחמים
     "לחם": "מאפים ולחמים", "לחם פרוס": "מאפים ולחמים", "לחמניות": "מאפים ולחמים", "לחמניה": "מאפים ולחמים", "פיתות": "מאפים ולחמים",
     "פיתה": "מאפים ולחמים", "חלות": "מאפים ולחמים", "חלה": "מאפים ולחמים", "חלות לשבת": "מאפים ולחמים", "טורטיות": "מאפים ולחמים",
     "בגט": "מאפים ולחמים", "רוגלך": "מאפים ולחמים", "בורקס": "מאפים ולחמים", "קוראסון": "מאפים ולחמים", "קרקרים": "מאפים ולחמים",
-    "פתית": "מאפים ולחמים", "פירורי לחם": "מאפים ולחמים", "מצות": "מאפים ולחמים",
-
-    // מוצרי חלב וביצים
     "חלב": "מוצרי חלב וביצים", "גבינה": "מוצרי חלב וביצים", "גבינה לבנה": "מוצרי חלב וביצים", "גבינה צהובה": "מוצרי חלב וביצים",
     "קוטג'": "מוצרי חלב וביצים", "חמאה": "מוצרי חלב וביצים", "ביצים": "מוצרי חלב וביצים", "ביצה": "מוצרי חלב וביצים",
     "יוגורט": "מוצרי חלב וביצים", "מעדן": "מוצרי חלב וביצים", "דנונה": "מוצרי חלב וביצים", "מילקי": "מוצרי חלב וביצים",
-    "שמנת חמוצה": "מוצרי חלב וביצים", "שמנת מתוקה": "מוצרי חלב וביצים", "שמנת לבישול": "מוצרי חלב וביצים", "גבינת עיזים": "מוצרי חלב וביצים",
-    "גבינה בולגרית": "מוצרי חלב וביצים", "פטה": "מוצרי חלב וביצים", "מוצרלה": "מוצרי חלב וביצים", "פרמזן": "מוצרי חלב וביצים",
-    "שוקו": "מוצרי חלב וביצים", "לבן": "מוצרי חלב וביצים", "אשל": "מוצרי חלב וביצים",
-
-    // מזווה ויבשים
+    "שמנת חמוצה": "מוצרי חלב וביצים", "שמנת מתוקה": "מוצרי חלב וביצים", "שמנת לבישול": "מוצרי חלב וביצים",
     "אורז": "מזווה ויבשים", "פסטה": "מזווה ויבשים", "ספגטי": "מזווה ויבשים", "פתיתים": "מזווה ויבשים", "קוסקוס": "מזווה ויבשים",
     "שמן קנולה": "מזווה ויבשים", "שמן זית": "מזווה ויבשים", "שמן": "מזווה ויבשים", "סוכר": "מזווה ויבשים", "סוכר חום": "מזווה ויבשים",
     "מלח": "מזווה ויבשים", "קמח": "מזווה ויבשים", "קמח תופח": "מזווה ויבשים", "קפה": "מזווה ויבשים", "נס קפה": "מזווה ויבשים",
-    "קפה שחור": "מזווה ויבשים", "תה": "מזווה ויבשים", "שקיקי תה": "מזווה ויבשים", "טונה": "מזווה ויבשים", "קופסת טונה": "מזווה ויבשים",
-    "רסק עגבניות": "מזווה ויבשים", "רסק": "מזווה ויבשים", "שימורים": "מזווה ויבשים", "תירס שימורים": "מזווה ויבשים",
-    "קטשופ": "מזווה ויבשים", "מיונז": "מזווה ויבשים", "חרדל": "מזווה ויבשים", "טחינה": "מזווה ויבשים", "חומוס": "מזווה ויבשים",
-    "דגני בוקר": "מזווה ויבשים", "קורנפלקס": "מזווה ויבשים", "שיבולת שועל": "מזווה ויבשים", "עוגיות": "מזווה ויבשים",
-    "שוקולד": "מזווה ויבשים", "חטיפים": "מזווה ויבשים", "במבה": "מזווה ויבשים", "ביסלי": "מזווה ויבשים", "תבלינים": "מזווה ויבשים",
-    "מרק עוף": "מזווה ויבשים", "דבש": "מזווה ויבשים", "סילאן": "מזווה ויבשים", "ריבה": "מזווה ויבשים",
-
-    // בשר ודגים
+    "קפה שחור": "מזווה ויבשים", "תה": "מזווה ויבשים", "טונה": "מזווה ויבשים", "רסק עגבניות": "מזווה ויבשים",
     "עוף": "בשר ודגים", "חזה עוף": "בשר ודגים", "פרגיות": "בשר ודגים", "פרגית": "בשר ודגים", "כרעיים": "בשר ודגים",
-    "שוקיים": "בשר ודגים", "כנפיים": "בשר ודגים", "בשר טחון": "בשר ודגים", "עוף טחון": "בשר ודגים", "בשר בקר": "בשר ודגים",
-    "סטייק": "בשר ודגים", "אנטריקוט": "בשר ודגים", "צלעות": "בשר ודגים", "נקניקיות": "בשר ודגים", "נקניק": "בשר ודגים",
-    "פסטרמה": "בשר ודגים", "סלמון": "בשר ודגים", "אמנון": "בשר ודגים", "מושט": "בשר ודגים", "דניס": "בשר ודגים",
-    "לברק": "בשר ודגים", "פילה דג": "בשר ודגים", "דגים": "בשר ודגים",
-
-    // קפואים
-    "שניצל תירס": "קפואים", "שניצל קפוא": "קפואים", "צ'יפס": "קפואים", "אפונה וגזר": "קפואים", "אפונה קפואה": "קפואים",
-    "שעועית ירוקה": "קפואים", "שעועית צהובה": "קפואים", "תירס קפוא": "קפואים", "בצק עלים": "קפואים", "בצק פילו": "קפואים",
-    "מלוואח": "קפואים", "ג'חנון": "קפואים", "פיצה קפואה": "קפואים", "גלידה": "קפואים", "קרטיב": "קפואים", "פירות קפואים": "קפואים",
-
-    // ניקיון ובית
-    "נייר טואלט": "ניקיון ובית", "מגבוני נייר": "ניקיון ובית", "מגבונים": "ניקיון ובית", "סבון כלים": "ניקיון ובית",
-    "נוזל כלים": "ניקיון ובית", "ספוג כלים": "ניקיון ובית", "סקוטש": "ניקיון ובית", "כריות יפניות": "ניקיון ובית",
-    "שמפו": "ניקיון ובית", "מרכך שיער": "ניקיון ובית", "סבון גוף": "ניקיון ובית", "סבון ידיים": "ניקיון ובית",
-    "משחת שיניים": "ניקיון ובית", "מברשת שיניים": "ניקיון ובית", "אבקת כביסה": "ניקיון ובית", "ג'ל כביסה": "ניקיון ובית",
-    "מרכך כביסה": "ניקיון ובית", "קפסולות כביסה": "ניקיון ובית", "מטהר אוויר": "ניקיון ובית", "נוזל רצפות": "ניקיון ובית",
-    "אקונומיקה": "ניקיון ובית", "שקיות אשפה": "ניקיון ובית", "נייר כסף": "ניקיון ובית", "נייר אפייה": "ניקיון ובית",
-    "ניילון נצמד": "ניקיון ובית", "סמרטוט": "ניקיון ובית", "חומרי ניקוי": "ניקיון ובית"
+    "בשר טחון": "בשר ודגים", "בשר בקר": "בשר ודגים", "נקניקיות": "בשר ודגים", "פסטרמה": "בשר ודגים", "סלמון": "בשר ודגים",
+    "שניצל תירס": "קפואים", "שניצל קפוא": "קפואים", "צ'יפס": "קפואים", "אפונה וגזר": "קפואים", "פיצה קפואה": "קפואים", "גלידה": "קפואים",
+    "נייר טואלט": "ניקיון ובית", "סבון כלים": "ניקיון ובית", "נוזל כלים": "ניקיון ובית", "ספוג כלים": "ניקיון ובית",
+    "שמפו": "ניקיון ובית", "סבון גוף": "ניקיון ובית", "משחת שיניים": "ניקיון ובית", "אבקת כביסה": "ניקיון ובית", "מרכך כביסה": "ניקיון ובית",
+    "שקיות אשפה": "ניקיון ובית", "אקונומיקה": "ניקיון ובית"
   };
 
   let items = [];
@@ -1016,7 +999,6 @@
   const syncText = document.getElementById('syncText');
   const btnMic = document.getElementById('btnMic');
 
-  // רכיבי Modal עריכה
   const editModal = document.getElementById('editModal');
   const editItemId = document.getElementById('editItemId');
   const editItemName = document.getElementById('editItemName');
@@ -1024,11 +1006,8 @@
   const editItemCategory = document.getElementById('editItemCategory');
   const editItemNote = document.getElementById('editItemNote');
 
-  // סיווג אוטומטי מהיר
   function autoDetectCategory(productName) {
     const clean = productName.trim().toLowerCase();
-    
-    // בדיקה מדויקת או חלקית
     for (const [key, category] of Object.entries(AUTOCOMPLETE_CATALOG)) {
       if (clean === key || clean.includes(key) || key.includes(clean)) {
         return category;
@@ -1037,7 +1016,14 @@
     return "שונות";
   }
 
-  // מעקב משתמש מחובר
+  // טעינה מיידית מתוך נתוני המשתמש השמורים עוד לפני אימות הרשת
+  if (cachedUid) {
+    itemsCol = db.collection("users").doc(cachedUid).collection("items");
+    frequentCol = db.collection("users").doc(cachedUid).collection("frequent");
+    initRealtimeSync();
+  }
+
+  // אימות מול פיירבייס
   auth.onAuthStateChanged(user => {
     currentUser = user;
     const authOverlay = document.getElementById('authOverlay');
@@ -1046,12 +1032,17 @@
     if (user) {
       authOverlay.style.display = 'none';
       userDisplay.textContent = user.email;
+      localStorage.setItem('last_user_email', user.email);
+      localStorage.setItem('last_user_uid', user.uid);
 
-      itemsCol = db.collection("users").doc(user.uid).collection("items");
-      frequentCol = db.collection("users").doc(user.uid).collection("frequent");
-
-      initRealtimeSync();
+      if (!itemsCol || cachedUid !== user.uid) {
+        itemsCol = db.collection("users").doc(user.uid).collection("items");
+        frequentCol = db.collection("users").doc(user.uid).collection("frequent");
+        initRealtimeSync();
+      }
     } else {
+      localStorage.removeItem('last_user_email');
+      localStorage.removeItem('last_user_uid');
       authOverlay.style.display = 'flex';
       userDisplay.textContent = '';
       if (unsubscribeItems) unsubscribeItems();
@@ -1147,8 +1138,7 @@
     };
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript.trim();
-      itemNameInput.value = transcript;
+      itemNameInput.value = event.results[0][0].transcript.trim();
     };
 
     recognition.onerror = () => stopSpeech();
@@ -1189,14 +1179,14 @@
         snapshot.forEach(doc => {
           items.push({ id: doc.id, ...doc.data() });
         });
-        syncText.textContent = "מחובר ומסונכרן בזמן אמת";
+        syncText.textContent = "מחובר ומסונכרן";
         syncText.style.color = "#059669";
         renderList();
       },
       (error) => {
         console.error(error);
-        syncText.textContent = "שגיאת חיבור לענן";
-        syncText.style.color = "red";
+        syncText.textContent = "עובד במצב לא מקוון";
+        syncText.style.color = "#d97706";
       }
     );
 
@@ -1464,7 +1454,7 @@
     });
   }
 
-  // הוספת פריט - סיווג מיידי ואוטומטי
+  // הוספת פריט - סיווג אוטומטי
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const name = itemNameInput.value.trim();
@@ -1473,7 +1463,6 @@
 
     if (!name) return;
 
-    // סיווג אוטומטי בלי שום עיכוב ובלי API חיצוני
     const category = autoDetectCategory(name);
     addItem(name, amount, category, note);
 
