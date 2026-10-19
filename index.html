@@ -993,6 +993,7 @@
   const itemNoteInput = document.getElementById('itemNote');
   const datalist = document.getElementById('smartSuggestions');
   const listContainer = document.getElementById('listContainer');
+  const frequentContainer = document.getElementById('frequentContainer');
   const actionsBar = document.getElementById('actionsBar');
   const itemsCount = document.getElementById('itemsCount');
   const btnShopMode = document.getElementById('btnShopMode');
@@ -1006,13 +1007,60 @@
   const editItemCategory = document.getElementById('editItemCategory');
   const editItemNote = document.getElementById('editItemNote');
 
+  // הגנה מפני הזרקת HTML: כל טקסט שהמשתמש הקליד עובר דרך הפונקציה הזו לפני שהוא נכנס ל-innerHTML
+  function esc(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ניקוי טקסט להשוואה: אותיות קטנות, רווחים כפולים וגרשיים שונים
+  function normalizeText(str) {
+    return String(str ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/[’‘`´]/g, "'")
+      .replace(/\s+/g, ' ');
+  }
+
+  // מוכן מראש פעם אחת: הקטלוג בצורה מנורמלת
+  const NORMALIZED_CATALOG = Object.entries(AUTOCOMPLETE_CATALOG).map(([key, category]) => ({
+    key: normalizeText(key),
+    words: normalizeText(key).split(' '),
+    category
+  }));
+
+  // סיווג אוטומטי מדויק יותר:
+  // 1. התאמה מלאה
+  // 2. מוצר מהקטלוג שמופיע כמילים שלמות בתוך מה שהוקלד (בוחרים את הארוך ביותר)
+  // 3. מילה שלמה שהוקלדה מופיעה בתוך מוצר בקטלוג (רק ממילה של 3 תווים ומעלה)
+  // 4. אחרת: שונות
   function autoDetectCategory(productName) {
-    const clean = productName.trim().toLowerCase();
-    for (const [key, category] of Object.entries(AUTOCOMPLETE_CATALOG)) {
-      if (clean === key || clean.includes(key) || key.includes(clean)) {
-        return category;
+    const clean = normalizeText(productName);
+    if (!clean) return "שונות";
+
+    const exact = NORMALIZED_CATALOG.find(e => e.key === clean);
+    if (exact) return exact.category;
+
+    const padded = ' ' + clean + ' ';
+    let best = null;
+    for (const entry of NORMALIZED_CATALOG) {
+      if (padded.includes(' ' + entry.key + ' ')) {
+        if (!best || entry.key.length > best.key.length) best = entry;
       }
     }
+    if (best) return best.category;
+
+    if (clean.length >= 3) {
+      const inputWords = clean.split(' ').filter(w => w.length >= 3);
+      for (const entry of NORMALIZED_CATALOG) {
+        if (inputWords.some(w => entry.words.includes(w))) return entry.category;
+      }
+    }
+
     return "שונות";
   }
 
@@ -1214,9 +1262,12 @@
     }).catch(err => alert("שגיאה בשמירה: " + err.message));
   }
 
-  function toggleComplete(id, currentStatus) {
+  // מקבל רק id ומחפש את הפריט במערך
+  function toggleComplete(id) {
     if (!itemsCol) return;
-    itemsCol.doc(id).update({ completed: !currentStatus });
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    itemsCol.doc(id).update({ completed: !item.completed });
   }
 
   function deleteItem(id) {
@@ -1229,7 +1280,9 @@
     frequentCol.doc(id).delete();
   }
 
-  function openEditModal(item) {
+  function openEditModal(id) {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
     editItemId.value = item.id;
     editItemName.value = item.name;
     editItemAmount.value = item.amount || '';
@@ -1264,8 +1317,10 @@
     }).catch(err => alert("שגיאה בעדכון: " + err.message));
   }
 
-  function toggleFrequentFromList(item) {
+  function toggleFrequentFromList(id) {
     if (!frequentCol) return;
+    const item = items.find(i => i.id === id);
+    if (!item) return;
     const existing = frequentItems.find(f => f.name.trim().toLowerCase() === item.name.trim().toLowerCase());
     if (existing) {
       frequentCol.doc(existing.id).delete();
@@ -1340,7 +1395,9 @@
     if (tab === 'frequent') renderFrequent();
   }
 
-  function addFromFrequent(frequentItem) {
+  function addFromFrequent(id) {
+    const frequentItem = frequentItems.find(f => f.id === id);
+    if (!frequentItem) return;
     const exists = items.some(i => i.name.toLowerCase() === frequentItem.name.toLowerCase() && !i.completed);
     if (exists) {
       alert(`המוצר "${frequentItem.name}" כבר מופיע ברשימה!`);
@@ -1354,30 +1411,28 @@
   }
 
   function renderFrequent() {
-    const container = document.getElementById('frequentContainer');
-    container.innerHTML = '';
+    frequentContainer.innerHTML = '';
 
     if (frequentItems.length === 0) {
-      container.innerHTML = '<div class="empty-state" style="grid-column: span 2;">אין עדיין מוצרים קבועים.<br>הוסיפו מוצרים קבועים למעלה בלחיצה קלה!</div>';
+      frequentContainer.innerHTML = '<div class="empty-state" style="grid-column: span 2;">אין עדיין מוצרים קבועים.<br>הוסיפו מוצרים קבועים למעלה בלחיצה קלה!</div>';
       return;
     }
 
     frequentItems.forEach(item => {
       const card = document.createElement('div');
       card.className = 'frequent-card';
-      const itemDataStr = JSON.stringify(item).replace(/"/g, '&quot;');
-      
+
       card.innerHTML = `
         <div class="frequent-info">
-          <span class="frequent-title">${item.name}</span>
-          <span class="frequent-cat">${item.category} (${item.amount})</span>
+          <span class="frequent-title">${esc(item.name)}</span>
+          <span class="frequent-cat">${esc(item.category)} (${esc(item.amount)})</span>
         </div>
         <div class="frequent-btns">
-          <button class="btn-add-quick" onclick="addFromFrequent(${itemDataStr})" title="הוסף לקניות">+</button>
-          <button class="btn-icon btn-delete" onclick="deleteFrequent('${item.id}')" title="מחק מקבועים">&times;</button>
+          <button class="btn-add-quick" data-action="add-frequent" data-id="${esc(item.id)}" title="הוסף לקניות">+</button>
+          <button class="btn-icon btn-delete" data-action="delete-frequent" data-id="${esc(item.id)}" title="מחק מקבועים">&times;</button>
         </div>
       `;
-      container.appendChild(card);
+      frequentContainer.appendChild(card);
     });
   }
 
@@ -1411,7 +1466,7 @@
         const titleEl = document.createElement('div');
         titleEl.className = 'category-title';
         titleEl.innerHTML = `
-          <span>${cat}</span>
+          <span>${esc(cat)}</span>
           <span class="category-badge">${uncompletedInCat}</span>
         `;
         groupEl.appendChild(titleEl);
@@ -1425,23 +1480,23 @@
           const li = document.createElement('li');
           li.className = `item-row ${item.completed ? 'completed' : ''}`;
           const isFreq = isItemFrequent(item.name);
-          const itemDataStr = JSON.stringify(item).replace(/"/g, '&quot;');
+          const id = esc(item.id);
 
-          const noteMarkup = item.note ? `<span class="item-note">💬 ${item.note}</span>` : '';
+          const noteMarkup = item.note ? `<span class="item-note">💬 ${esc(item.note)}</span>` : '';
 
           li.innerHTML = `
-            <div class="item-info" onclick="toggleComplete('${item.id}', ${item.completed})">
-              <input type="checkbox" class="item-checkbox" ${item.completed ? 'checked' : ''} onclick="event.stopPropagation(); toggleComplete('${item.id}', ${item.completed})">
+            <div class="item-info" data-action="toggle" data-id="${id}">
+              <input type="checkbox" class="item-checkbox" data-action="toggle" data-id="${id}" ${item.completed ? 'checked' : ''}>
               <div class="item-text-group">
-                <span class="item-name">${item.name}</span>
+                <span class="item-name">${esc(item.name)}</span>
                 ${noteMarkup}
               </div>
-              <span class="item-amount">${item.amount}</span>
+              <span class="item-amount">${esc(item.amount)}</span>
             </div>
             <div class="item-actions">
-              <button class="btn-icon btn-edit" onclick="openEditModal(${itemDataStr})" title="ערוך פריט">✏️</button>
-              <button class="btn-icon btn-star ${isFreq ? 'is-frequent' : ''}" onclick="toggleFrequentFromList(${itemDataStr})" title="${isFreq ? 'הסר מקבועים' : 'שמור כקבוע'}">★</button>
-              <button class="btn-icon btn-delete" onclick="deleteItem('${item.id}')" title="מחק פריט">&times;</button>
+              <button class="btn-icon btn-edit" data-action="edit" data-id="${id}" title="ערוך פריט">✏️</button>
+              <button class="btn-icon btn-star ${isFreq ? 'is-frequent' : ''}" data-action="star" data-id="${id}" title="${isFreq ? 'הסר מקבועים' : 'שמור כקבוע'}">★</button>
+              <button class="btn-icon btn-delete" data-action="delete" data-id="${id}" title="מחק פריט">&times;</button>
             </div>
           `;
 
@@ -1453,6 +1508,27 @@
       }
     });
   }
+
+  // טיפול בלחיצות בצורה בטוחה: מאזין אחד לכל מיכל, ובו קוראים את ה-id מתוך data-id
+  listContainer.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const id = el.dataset.id;
+    switch (el.dataset.action) {
+      case 'toggle': toggleComplete(id); break;
+      case 'edit': openEditModal(id); break;
+      case 'star': toggleFrequentFromList(id); break;
+      case 'delete': deleteItem(id); break;
+    }
+  });
+
+  frequentContainer.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const id = el.dataset.id;
+    if (el.dataset.action === 'add-frequent') addFromFrequent(id);
+    if (el.dataset.action === 'delete-frequent') deleteFrequent(id);
+  });
 
   // הוספת פריט - סיווג אוטומטי
   form.addEventListener('submit', (e) => {
