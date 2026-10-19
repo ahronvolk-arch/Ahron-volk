@@ -832,6 +832,19 @@
       </div>
       <div class="form-row">
         <input type="text" id="itemNote" class="input-note" placeholder="הערה (אופציונלי, למשל: רק במבצע)">
+      </div>
+      <div class="form-row">
+        <select id="itemCategory" style="flex: 1; min-width: 0;" title="קטגוריה">
+          <option value="">✨ קטגוריה: אוטומטי</option>
+          <option value="ירקות ופירות">🥦 ירקות ופירות</option>
+          <option value="מאפים ולחמים">🥖 מאפים ולחמים</option>
+          <option value="מוצרי חלב וביצים">🧀 מוצרי חלב וביצים</option>
+          <option value="מזווה ויבשים">🌾 מזווה ויבשים</option>
+          <option value="בשר ודגים">🥩 בשר ודגים</option>
+          <option value="קפואים">❄️ קפואים</option>
+          <option value="ניקיון ובית">🧼 ניקיון ובית</option>
+          <option value="שונות">📦 שונות</option>
+        </select>
         <button type="submit" class="btn-primary">+ הוסף</button>
       </div>
     </form>
@@ -940,6 +953,10 @@
   let frequentCol = null;
   let unsubscribeItems = null;
   let unsubscribeFrequent = null;
+  let learnedCol = null;
+  let unsubscribeLearned = null;
+  let learnedMap = {}; // שם מנורמל -> קטגוריה (נלמד מה-AI או מתיקון ידני)
+  const AI_MODEL = "gemini-2.5-flash"; // אם גוגל תפסיק לתמוך בדגם הזה, מחליפים כאן לשם דגם עדכני
 
   const CATEGORY_ORDER = [
     "ירקות ופירות",
@@ -991,6 +1008,7 @@
   const itemNameInput = document.getElementById('itemName');
   const itemAmountInput = document.getElementById('itemAmount');
   const itemNoteInput = document.getElementById('itemNote');
+  const itemCategorySelect = document.getElementById('itemCategory');
   const datalist = document.getElementById('smartSuggestions');
   const listContainer = document.getElementById('listContainer');
   const frequentContainer = document.getElementById('frequentContainer');
@@ -1040,7 +1058,7 @@
   // 4. אחרת: שונות
   function autoDetectCategory(productName) {
     const clean = normalizeText(productName);
-    if (!clean) return "שונות";
+    if (!clean) return null;
 
     const exact = NORMALIZED_CATALOG.find(e => e.key === clean);
     if (exact) return exact.category;
@@ -1061,13 +1079,14 @@
       }
     }
 
-    return "שונות";
+    return null; // לא מוכר בקטלוג
   }
 
   // טעינה מיידית מתוך נתוני המשתמש השמורים עוד לפני אימות הרשת
   if (cachedUid) {
     itemsCol = db.collection("users").doc(cachedUid).collection("items");
     frequentCol = db.collection("users").doc(cachedUid).collection("frequent");
+    learnedCol = db.collection("users").doc(cachedUid).collection("learned");
     initRealtimeSync();
   }
 
@@ -1086,6 +1105,7 @@
       if (!itemsCol || cachedUid !== user.uid) {
         itemsCol = db.collection("users").doc(user.uid).collection("items");
         frequentCol = db.collection("users").doc(user.uid).collection("frequent");
+        learnedCol = db.collection("users").doc(user.uid).collection("learned");
         initRealtimeSync();
       }
     } else {
@@ -1095,6 +1115,8 @@
       userDisplay.textContent = '';
       if (unsubscribeItems) unsubscribeItems();
       if (unsubscribeFrequent) unsubscribeFrequent();
+      if (unsubscribeLearned) unsubscribeLearned();
+      learnedMap = {};
       items = [];
       frequentItems = [];
       renderList();
@@ -1220,6 +1242,18 @@
   function initRealtimeSync() {
     if (unsubscribeItems) unsubscribeItems();
     if (unsubscribeFrequent) unsubscribeFrequent();
+    if (unsubscribeLearned) unsubscribeLearned();
+
+    unsubscribeLearned = learnedCol.onSnapshot(
+      (snapshot) => {
+        learnedMap = {};
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          if (d.name && d.category) learnedMap[d.name] = d.category;
+        });
+      },
+      (error) => console.warn("learned categories:", error.code)
+    );
 
     unsubscribeItems = itemsCol.orderBy("createdAt", "desc").onSnapshot(
       (snapshot) => {
@@ -1248,6 +1282,43 @@
         renderList();
       }
     );
+  }
+
+  // שמירת קטגוריה נלמדת (נשמרת ב-Firebase ומשותפת לכל המכשירים)
+  function saveLearned(name, category) {
+    const key = normalizeText(name);
+    if (!learnedCol || !key || !CATEGORY_ORDER.includes(category)) return;
+    learnedMap[key] = category;
+    learnedCol.doc(encodeURIComponent(key)).set({ name: key, category: category })
+      .catch(err => console.warn("learn save failed:", err.code));
+  }
+
+  // בקשת סיווג מה-AI, עם הגבלת זמן כדי שלא נתקע בלי אינטרנט
+  async function askAiForCategory(name) {
+    if (typeof window.aiCategorize !== 'function') return null;
+    try {
+      return await Promise.race([
+        window.aiCategorize(name),
+        new Promise(resolve => setTimeout(() => resolve(null), 7000))
+      ]);
+    } catch (err) {
+      console.warn("AI categorize failed:", err);
+      return null;
+    }
+  }
+
+  // סדר הסיווג: בחירה ידנית > זיכרון > קטלוג > AI > שונות
+  async function resolveCategory(name) {
+    const learned = learnedMap[normalizeText(name)];
+    if (learned) return learned;
+    const local = autoDetectCategory(name);
+    if (local) return local;
+    const ai = await askAiForCategory(name);
+    if (ai) {
+      saveLearned(name, ai);
+      return ai;
+    }
+    return "שונות";
   }
 
   function addItem(name, amount, category, note) {
@@ -1305,6 +1376,11 @@
     if (!name) {
       alert('נא להזין שם מוצר');
       return;
+    }
+
+    const oldItem = items.find(i => i.id === id);
+    if (oldItem && oldItem.category !== category) {
+      saveLearned(name, category); // המערכת זוכרת את התיקון לפעם הבאה
     }
 
     itemsCol.doc(id).update({
@@ -1531,21 +1607,30 @@
   });
 
   // הוספת פריט - סיווג אוטומטי
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = itemNameInput.value.trim();
     const amount = itemAmountInput.value.trim();
     const note = itemNoteInput.value.trim();
+    const manualCategory = itemCategorySelect.value;
 
     if (!name) return;
 
-    const category = autoDetectCategory(name);
-    addItem(name, amount, category, note);
-
+    // מנקים את הטופס מיד כדי שאפשר יהיה להמשיך להקליד, הסיווג ממשיך ברקע
     itemNameInput.value = '';
     itemAmountInput.value = '';
     itemNoteInput.value = '';
+    itemCategorySelect.value = '';
     itemNameInput.focus();
+
+    let category;
+    if (manualCategory) {
+      category = manualCategory;
+      saveLearned(name, manualCategory);
+    } else {
+      category = await resolveCategory(name);
+    }
+    addItem(name, amount, category, note);
   });
 
   addFrequentForm.addEventListener('submit', (e) => {
@@ -1570,6 +1655,39 @@
       document.getElementById('freqCategory').value = '';
     }
   });
+</script>
+
+<!-- חיבור ל-Gemini דרך Firebase AI Logic (אם נכשל, האפליקציה ממשיכה לעבוד רגיל) -->
+<script type="module">
+  try {
+    const FB = "https://www.gstatic.com/firebasejs/11.10.0/";
+    const { initializeApp } = await import(FB + "firebase-app.js");
+    const { getAI, getGenerativeModel, GoogleAIBackend, Schema } = await import(FB + "firebase-ai.js");
+
+    const aiApp = initializeApp(firebaseConfig, "ai-logic");
+    const ai = getAI(aiApp, { backend: new GoogleAIBackend() });
+    const model = getGenerativeModel(ai, {
+      model: AI_MODEL,
+      generationConfig: {
+        responseMimeType: "text/x.enum",
+        responseSchema: Schema.enumString({ enum: CATEGORY_ORDER })
+      }
+    });
+
+    window.aiCategorize = async (productName) => {
+      const prompt =
+        "אתה מסווג מוצרים לרשימת קניות של סופרמרקט בישראל. " +
+        "בחר את הקטגוריה המתאימה ביותר למוצר הבא מתוך הרשימה בלבד.\n" +
+        "קטגוריות: " + CATEGORY_ORDER.join(", ") + "\n" +
+        "אם המוצר לא שייך בבירור לאף קטגוריה, בחר 'שונות'.\n" +
+        "מוצר: " + productName;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim().replace(/^["']|["']$/g, "");
+      return CATEGORY_ORDER.includes(text) ? text : null;
+    };
+  } catch (err) {
+    console.warn("AI categorization unavailable:", err);
+  }
 </script>
 
 </body>
