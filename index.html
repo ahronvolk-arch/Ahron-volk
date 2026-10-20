@@ -701,6 +701,155 @@
       text-decoration: underline;
     }
 
+    /* ===== עיצוב מודרני: קטגוריות צבעוניות, אנימציות, התקדמות, הודעות ===== */
+    .category-group {
+      border-inline-start: 5px solid var(--cat, #cbd5e1);
+    }
+
+    .cat-name {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .cat-emoji {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: var(--cat-bg, #f1f5f9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+    }
+
+    .category-badge {
+      background: var(--cat-bg, #eff6ff);
+      color: var(--cat, var(--primary-dark));
+    }
+
+    @keyframes itemIn {
+      from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @keyframes itemDone {
+      0% { background: #bbf7d0; transform: scale(1.025); }
+      100% { background: #f8fafc; transform: none; }
+    }
+
+    .item-row.enter { animation: itemIn 0.35s ease; }
+    .item-row.just-done { animation: itemDone 0.55s ease; }
+
+    .item-row.removing {
+      opacity: 0 !important;
+      transform: translateX(-28px);
+      transition: all 0.22s ease;
+    }
+
+    .btn-icon:active, .btn-add-quick:active { transform: scale(0.88); }
+
+    .progress-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(226, 232, 240, 0.7);
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: var(--primary-gradient);
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .progress-card.done .progress-fill { background: linear-gradient(135deg, #34d399, #059669); }
+    .progress-card.done #progressText { color: #059669; }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92) translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .modal-overlay.active .modal-content { animation: popIn 0.22s ease; }
+
+    .btn-modal-danger {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      color: #fff;
+    }
+
+    #toastHost {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 4000;
+      padding: 0 16px;
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      background: #0f172a;
+      color: #fff;
+      padding: 11px 16px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+      max-width: 440px;
+      animation: popIn 0.25s ease;
+      transition: opacity 0.25s, transform 0.25s;
+    }
+
+    .toast.error { background: #b91c1c; }
+    .toast.hide { opacity: 0; transform: translateY(10px); }
+
+    .toast-action {
+      background: none;
+      border: none;
+      color: #93c5fd;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+
+    @media print {
+      #progressWrap, #toastHost, #dialogOverlay { display: none !important; }
+    }
+
     @media print {
       body {
         background: #ffffff !important;
@@ -849,6 +998,14 @@
       </div>
     </form>
 
+    <div class="progress-card" id="progressWrap" style="display: none;">
+      <div class="progress-top">
+        <span id="progressText"></span>
+        <span id="progressPct"></span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
     <div class="actions-bar" id="actionsBar" style="display: none;">
       <span class="items-count" id="itemsCount"></span>
       <div class="action-buttons">
@@ -887,6 +1044,20 @@
     <div class="frequent-grid" id="frequentContainer"></div>
   </div>
 </div>
+
+<!-- חלונית אישור מעוצבת -->
+<div class="modal-overlay" id="dialogOverlay" style="z-index: 3000;">
+  <div class="modal-content">
+    <div class="modal-header"><span id="dialogTitle"></span></div>
+    <div id="dialogMessage" style="white-space: pre-line; color: var(--text-secondary); font-size: 0.93rem; line-height: 1.55;"></div>
+    <div class="modal-actions">
+      <button type="button" id="dialogOk" class="btn-modal-save"></button>
+      <button type="button" id="dialogCancel" class="btn-modal-cancel"></button>
+    </div>
+  </div>
+</div>
+
+<div id="toastHost"></div>
 
 <!-- חלונית עריכת מוצר -->
 <div class="modal-overlay" id="editModal">
@@ -968,6 +1139,90 @@
     "ניקיון ובית",
     "שונות"
   ];
+
+  const CATEGORY_META = {
+    "ירקות ופירות":      { emoji: "🥦", color: "#16a34a", bg: "#dcfce7" },
+    "מאפים ולחמים":      { emoji: "🥖", color: "#ca8a04", bg: "#fef9c3" },
+    "מוצרי חלב וביצים":  { emoji: "🧀", color: "#0284c7", bg: "#e0f2fe" },
+    "מזווה ויבשים":      { emoji: "🌾", color: "#c2410c", bg: "#ffedd5" },
+    "בשר ודגים":         { emoji: "🥩", color: "#dc2626", bg: "#fee2e2" },
+    "קפואים":            { emoji: "❄️", color: "#6366f1", bg: "#e0e7ff" },
+    "ניקיון ובית":       { emoji: "🧼", color: "#9333ea", bg: "#f3e8ff" },
+    "שונות":             { emoji: "📦", color: "#64748b", bg: "#f1f5f9" }
+  };
+
+  let prevState = null; // מצב הפריטים ברינדור הקודם, בשביל אנימציות
+
+  // הודעה קטנה צפה (אפשר עם כפתור פעולה, למשל "ביטול")
+  function showToast(message, opts = {}) {
+    const host = document.getElementById('toastHost');
+    const t = document.createElement('div');
+    t.className = 'toast' + (opts.type === 'error' ? ' error' : '');
+    const span = document.createElement('span');
+    span.textContent = message;
+    t.appendChild(span);
+
+    let timer;
+    const close = () => {
+      clearTimeout(timer);
+      t.classList.add('hide');
+      setTimeout(() => t.remove(), 250);
+    };
+
+    if (opts.actionText) {
+      const b = document.createElement('button');
+      b.className = 'toast-action';
+      b.textContent = opts.actionText;
+      b.onclick = () => { close(); if (opts.onAction) opts.onAction(); };
+      t.appendChild(b);
+    }
+
+    host.appendChild(t);
+    while (host.children.length > 3) host.firstChild.remove();
+    timer = setTimeout(close, opts.duration || 3500);
+  }
+
+  // חלונית אישור מעוצבת, מחזירה Promise עם true/false
+  function showConfirm(message, opts = {}) {
+    const overlay = document.getElementById('dialogOverlay');
+    const ok = document.getElementById('dialogOk');
+    const cancel = document.getElementById('dialogCancel');
+    document.getElementById('dialogTitle').textContent = opts.title || 'אישור';
+    document.getElementById('dialogMessage').textContent = message;
+    ok.textContent = opts.okText || 'אישור';
+    cancel.textContent = opts.cancelText || 'ביטול';
+    ok.className = opts.danger ? 'btn-modal-danger' : 'btn-modal-save';
+
+    return new Promise(resolve => {
+      const done = (value) => {
+        overlay.classList.remove('active');
+        ok.onclick = cancel.onclick = overlay.onclick = null;
+        resolve(value);
+      };
+      ok.onclick = () => done(true);
+      cancel.onclick = () => done(false);
+      overlay.onclick = (e) => { if (e.target === overlay) done(false); };
+      overlay.classList.add('active');
+    });
+  }
+
+  // מחוון התקדמות
+  function updateProgress() {
+    const wrap = document.getElementById('progressWrap');
+    const total = items.length;
+    if (total === 0) {
+      wrap.style.display = 'none';
+      return;
+    }
+    const done = items.filter(i => i.completed).length;
+    const pct = Math.round((done / total) * 100);
+    wrap.style.display = 'block';
+    wrap.classList.toggle('done', done === total);
+    document.getElementById('progressText').textContent =
+      done === total ? 'סיימת הכול! 🎉' : `אספת ${done} מתוך ${total}`;
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('progressFill').style.width = pct + '%';
+  }
 
   const AUTOCOMPLETE_CATALOG = {
     "עגבניות": "ירקות ופירות", "עגבניה": "ירקות ופירות", "עגבניות שרי": "ירקות ופירות", "מלפפונים": "ירקות ופירות", "מלפפון": "ירקות ופירות",
@@ -1175,8 +1430,8 @@
     }
   }
 
-  function logoutUser() {
-    if (confirm("האם להתנתק מהחשבון?")) {
+  async function logoutUser() {
+    if (await showConfirm("האם להתנתק מהחשבון?", { title: 'יציאה', okText: 'התנתק', danger: true })) {
       auth.signOut();
     }
   }
@@ -1219,7 +1474,7 @@
 
   function toggleSpeech() {
     if (!recognition) {
-      alert("הדפדפן אינו תומך בהקלטה קולית.");
+      showToast("הדפדפן אינו תומך בהקלטה קולית.", { type: 'error' });
       return;
     }
     if (isListening) {
@@ -1321,6 +1576,67 @@
     return "שונות";
   }
 
+  // ---- זיהוי כפילויות ואיחוד כמויות ----
+  function findActiveDuplicate(name) {
+    const key = normalizeText(name);
+    return items.find(i => !i.completed && normalizeText(i.name) === key);
+  }
+
+  function findCompletedDuplicate(name) {
+    const key = normalizeText(name);
+    return items.find(i => i.completed && normalizeText(i.name) === key);
+  }
+
+  // איחוד כמויות: 2 + 3 = 5, "2 ק״ג" + "1 ק״ג" = "3 ק״ג", אחרת "א + ב"
+  function mergeAmounts(oldAmount, addAmount) {
+    const a = String(oldAmount || '1').trim();
+    const b = String(addAmount || '1').trim();
+    const re = /^(\d+(?:\.\d+)?)\s*(.*)$/;
+    const ma = a.match(re);
+    const mb = b.match(re);
+    if (ma && mb && ma[2].trim() === mb[2].trim()) {
+      const sum = Math.round((parseFloat(ma[1]) + parseFloat(mb[1])) * 100) / 100;
+      return ma[2].trim() ? `${sum} ${ma[2].trim()}` : String(sum);
+    }
+    return `${a} + ${b}`;
+  }
+
+  function mergeNotes(oldNote, addNote) {
+    const a = (oldNote || '').trim();
+    const b = (addNote || '').trim();
+    if (!b || a === b) return a;
+    return a ? `${a} | ${b}` : b;
+  }
+
+  // מנסה לאחד עם פריט קיים. מחזיר true אם טיפל (איחד או שהמשתמש ביטל), false אם אין כפילות
+  async function tryMergeDuplicate(name, amount, note) {
+    const dup = findActiveDuplicate(name);
+    if (dup) {
+      const merged = mergeAmounts(dup.amount, amount);
+      const ok = await showConfirm(`"${dup.name}" כבר ברשימה (כמות: ${dup.amount}).\nלהוסיף עוד ${amount || '1'}?\nהכמות תתעדכן ל-${merged}.`, { title: 'המוצר כבר קיים', okText: 'כן, הוסף', cancelText: 'לא' });
+      if (ok) {
+        itemsCol.doc(dup.id).update({
+          amount: merged,
+          note: mergeNotes(dup.note, note)
+        }).catch(err => showToast("שגיאה בעדכון: " + err.message, { type: 'error' }));
+        return 'merged';
+      }
+      return 'cancelled';
+    }
+
+    // פריט שכבר סומן כנאסף: מחזירים אותו לרשימה עם הכמות החדשה
+    const done = findCompletedDuplicate(name);
+    if (done) {
+      itemsCol.doc(done.id).update({
+        completed: false,
+        amount: (amount || '').trim() || '1',
+        note: (note || '').trim()
+      }).catch(err => showToast("שגיאה בעדכון: " + err.message, { type: 'error' }));
+      return 'reactivated';
+    }
+    return null;
+  }
+
   function addItem(name, amount, category, note) {
     if (!itemsCol) return;
     itemsCol.add({
@@ -1330,7 +1646,7 @@
       note: note.trim() || '',
       completed: false,
       createdAt: Date.now()
-    }).catch(err => alert("שגיאה בשמירה: " + err.message));
+    }).catch(err => showToast("שגיאה בשמירה: " + err.message, { type: 'error' }));
   }
 
   // מקבל רק id ומחפש את הפריט במערך
@@ -1343,7 +1659,19 @@
 
   function deleteItem(id) {
     if (!itemsCol) return;
-    itemsCol.doc(id).delete();
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    const { id: _ignored, ...data } = item;
+
+    const row = listContainer.querySelector(`[data-row-id="${CSS.escape(id)}"]`);
+    if (row) row.classList.add('removing');
+    setTimeout(() => itemsCol.doc(id).delete(), 220);
+
+    showToast(`"${item.name}" נמחק`, {
+      actionText: 'ביטול',
+      duration: 6000,
+      onAction: () => itemsCol.doc(id).set(data)
+    });
   }
 
   function deleteFrequent(id) {
@@ -1374,7 +1702,7 @@
     const note = editItemNote.value.trim();
 
     if (!name) {
-      alert('נא להזין שם מוצר');
+      showToast('נא להזין שם מוצר', { type: 'error' });
       return;
     }
 
@@ -1390,7 +1718,7 @@
       note: note
     }).then(() => {
       closeEditModal();
-    }).catch(err => alert("שגיאה בעדכון: " + err.message));
+    }).catch(err => showToast("שגיאה בעדכון: " + err.message, { type: 'error' }));
   }
 
   function toggleFrequentFromList(id) {
@@ -1409,10 +1737,10 @@
     }
   }
 
-  function clearCompleted() {
+  async function clearCompleted() {
     const completedItems = items.filter(i => i.completed);
     if (completedItems.length === 0) return;
-    if (confirm('למחוק את כל הפריטים שנאספו לעגלה?')) {
+    if (await showConfirm('למחוק את כל הפריטים שנאספו לעגלה?', { title: 'ניקוי הרשימה', okText: 'מחק', danger: true })) {
       const batch = db.batch();
       completedItems.forEach(i => {
         batch.delete(itemsCol.doc(i.id));
@@ -1430,7 +1758,7 @@
 
   function shareWhatsApp() {
     if (items.length === 0) {
-      alert("הרשימה ריקה, אין מה לשתף!");
+      showToast("הרשימה ריקה, אין מה לשתף!");
       return;
     }
 
@@ -1471,14 +1799,10 @@
     if (tab === 'frequent') renderFrequent();
   }
 
-  function addFromFrequent(id) {
+  async function addFromFrequent(id) {
     const frequentItem = frequentItems.find(f => f.id === id);
     if (!frequentItem) return;
-    const exists = items.some(i => i.name.toLowerCase() === frequentItem.name.toLowerCase() && !i.completed);
-    if (exists) {
-      alert(`המוצר "${frequentItem.name}" כבר מופיע ברשימה!`);
-      return;
-    }
+    if (await tryMergeDuplicate(frequentItem.name, frequentItem.amount, '')) return;
     addItem(frequentItem.name, frequentItem.amount, frequentItem.category, '');
   }
 
@@ -1515,6 +1839,9 @@
   function renderList() {
     listContainer.innerHTML = '';
     const displayItems = shopMode ? items.filter(i => !i.completed) : items;
+    const prev = prevState;
+    prevState = new Map(items.map(i => [i.id, !!i.completed]));
+    updateProgress();
 
     if (items.length === 0) {
       actionsBar.style.display = 'none';
@@ -1536,13 +1863,16 @@
       if (grouped[cat] && grouped[cat].length > 0) {
         const groupEl = document.createElement('div');
         groupEl.className = 'category-group';
+        const meta = CATEGORY_META[cat] || CATEGORY_META["שונות"];
+        groupEl.style.setProperty('--cat', meta.color);
+        groupEl.style.setProperty('--cat-bg', meta.bg);
 
         const uncompletedInCat = grouped[cat].filter(i => !i.completed).length;
 
         const titleEl = document.createElement('div');
         titleEl.className = 'category-title';
         titleEl.innerHTML = `
-          <span>${esc(cat)}</span>
+          <span class="cat-name"><span class="cat-emoji">${meta.emoji}</span>${esc(cat)}</span>
           <span class="category-badge">${uncompletedInCat}</span>
         `;
         groupEl.appendChild(titleEl);
@@ -1555,6 +1885,11 @@
         grouped[cat].forEach(item => {
           const li = document.createElement('li');
           li.className = `item-row ${item.completed ? 'completed' : ''}`;
+          li.dataset.rowId = item.id;
+          if (prev) {
+            if (!prev.has(item.id)) li.classList.add('enter');
+            else if (!prev.get(item.id) && item.completed) li.classList.add('just-done');
+          }
           const isFreq = isItemFrequent(item.name);
           const id = esc(item.id);
 
@@ -1616,6 +1951,18 @@
 
     if (!name) return;
 
+    // כפילות: שואלים לפני שמנקים את הטופס, כדי שלא יאבד מה שהוקלד
+    const dupResult = await tryMergeDuplicate(name, amount, note);
+    if (dupResult === 'cancelled') return;
+    if (dupResult) {
+      itemNameInput.value = '';
+      itemAmountInput.value = '';
+      itemNoteInput.value = '';
+      itemCategorySelect.value = '';
+      itemNameInput.focus();
+      return;
+    }
+
     // מנקים את הטופס מיד כדי שאפשר יהיה להמשיך להקליד, הסיווג ממשיך ברקע
     itemNameInput.value = '';
     itemAmountInput.value = '';
@@ -1640,13 +1987,13 @@
     const category = document.getElementById('freqCategory').value;
 
     if (!category) {
-      alert('נא לבחור קטגוריה!');
+      showToast('נא לבחור קטגוריה!', { type: 'error' });
       return;
     }
 
     if (name) {
       if (isItemFrequent(name)) {
-        alert('המוצר כבר קיים ברשימת הקבועים!');
+        showToast('המוצר כבר קיים ברשימת הקבועים!');
         return;
       }
       frequentCol.add({ name, amount, category });
