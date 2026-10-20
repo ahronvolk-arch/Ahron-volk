@@ -1619,6 +1619,7 @@
           amount: merged,
           note: mergeNotes(dup.note, note)
         }).catch(err => showToast("שגיאה בעדכון: " + err.message, { type: 'error' }));
+        showToast(`"${dup.name}" עודכן: כמות ${merged}`);
         return 'merged';
       }
       return 'cancelled';
@@ -1632,6 +1633,7 @@
         amount: (amount || '').trim() || '1',
         note: (note || '').trim()
       }).catch(err => showToast("שגיאה בעדכון: " + err.message, { type: 'error' }));
+      showToast(`"${done.name}" הוחזר לרשימה`);
       return 'reactivated';
     }
     return null;
@@ -1647,6 +1649,7 @@
       completed: false,
       createdAt: Date.now()
     }).catch(err => showToast("שגיאה בשמירה: " + err.message, { type: 'error' }));
+    showToast(`"${name.trim()}" נוסף ל${category}`);
   }
 
   // מקבל רק id ומחפש את הפריט במערך
